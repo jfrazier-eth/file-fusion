@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@react-hook/resize-observer": "^1.2.6",
     "@tauri-apps/api": "^1.5.2",
     "daisyui": "latest",
     "next": "14.0.4",

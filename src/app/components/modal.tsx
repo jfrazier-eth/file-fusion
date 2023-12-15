@@ -33,7 +33,7 @@ export function Modal({
       <input
         type="checkbox"
         id="my_modal_6"
-        className="modal-toggle z-10"
+        className="modal-toggle"
         checked={isOpen}
         onChange={() => {
           // ignore
@@ -41,7 +41,7 @@ export function Modal({
         }}
       />
       <div
-        className="modal z-15"
+        className="modal"
         role="dialog"
         onClick={(e) => {
           e.preventDefault();
@@ -76,7 +76,7 @@ export function Modal({
               className="input input-bordered grow"
             />
             <button
-              className="btn btn-primary ml-2 z-20"
+              className="btn btn-secondary ml-2"
               ref={buttonRef}
               onClick={(e) => {
                 e.preventDefault();
