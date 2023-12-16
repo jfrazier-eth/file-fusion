@@ -57,8 +57,8 @@ fn home_dir() -> Result<String, Error> {
 
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone, Copy)]
 enum ContentKind {
-    Directory = 0,
-    File = 1,
+    Directory,
+    File,
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
@@ -90,9 +90,9 @@ struct Contents {
 
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
 enum StorageKind {
-    Local = 0,
-    ObjectStore = 1,
-    Arweave = 2,
+    Local,
+    ObjectStore,
+    Arweave,
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
@@ -120,6 +120,8 @@ async fn contents(storage: Storage) -> Result<Contents, Error> {
         let is_dir = path.is_dir();
         let path = path.as_os_str().to_str().ok_or(Error::ParsePath)?;
         let path = String::from(path);
+
+        println!("Path {} Is Dir {}", path, is_dir);
 
         let item = Content::new(path, is_dir);
         items.push(item);

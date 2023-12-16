@@ -10,13 +10,15 @@ export function Contents(props: { items: Content[]; storage: Storage }) {
       <table className="table">
         <thead>
           <tr>
-            <th></th>
+            <th className="w-8"></th>
             <th>Name</th>
           </tr>
         </thead>
         <tbody>
           {props.items.map((item) => {
-            let Icon = item.kind === ContentKind.File ? FileIcon : FolderIcon;
+            const isFile = item.kind === ContentKind.File;
+
+            let Icon = isFile ? FileIcon : FolderIcon;
             const name = item.path.split("/").pop() || "";
             const itemStorage: Storage = {
               ...props.storage,
@@ -24,16 +26,29 @@ export function Contents(props: { items: Content[]; storage: Storage }) {
               path: item.path,
             };
             return (
-              <tr key={item.path} className="hover:bg-neutral">
+              <tr
+                key={item.path}
+                className={`${
+                  isFile ? "hover:bg-neutral text-primary" : "hover:bg-neutral"
+                }`}
+              >
                 <th>
-                  <StorageLink storage={itemStorage}>
-                    <Icon />
-                  </StorageLink>
+                  {isFile ? (
+                    <FileIcon />
+                  ) : (
+                    <StorageLink storage={itemStorage}>
+                      <Icon />
+                    </StorageLink>
+                  )}
                 </th>
                 <td className="flex flex-row items-center">
-                  <StorageLink storage={itemStorage} key={item.path}>
+                  {isFile ? (
                     <p className="ml-2">{name}</p>
-                  </StorageLink>
+                  ) : (
+                    <StorageLink storage={itemStorage} key={item.path}>
+                      <p className={"ml-2"}>{name}</p>
+                    </StorageLink>
+                  )}
                 </td>
               </tr>
             );

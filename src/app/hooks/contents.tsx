@@ -9,8 +9,8 @@ import {
 import { UseStorageResponse } from "./storage";
 
 export enum ContentKind {
-  Directory,
-  File,
+  Directory = "Directory",
+  File = "File",
 }
 
 export interface Content {

@@ -3,9 +3,9 @@ import { invoke } from "@tauri-apps/api/tauri";
 import { useCallback } from "react";
 
 export enum StorageKind {
-  Local,
-  ObjectStore,
-  Arweave,
+  Local = "Local",
+  ObjectStore = "ObjectStore",
+  Arweave = "Arweave",
 }
 
 export interface Storage {
