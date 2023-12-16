@@ -55,7 +55,7 @@ const SelectStorageKind = forwardRef(
         </div>
         <select
           ref={ref}
-          className="select ml-4 select-primary rounded-sm select-md w-full max-w-xs grow"
+          className="select ml-4 select-accent rounded-sm select-md w-full max-w-xs grow"
           value={selected}
           onChange={(e) => {
             setSelected(e.target.value as StorageKind);

@@ -53,15 +53,19 @@ export const useKeyBindings = ({
           switch (name) {
             case "back": {
               router.back();
+              break;
             }
             case "forward": {
               router.forward();
+              break;
             }
             case "newFolder": {
               toggleNewFolderModal();
+              break;
             }
             case "newStorage": {
               toggleNewStorageModal();
+              break;
             }
           }
         }
