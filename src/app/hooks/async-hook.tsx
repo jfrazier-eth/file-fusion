@@ -67,8 +67,10 @@ export function useAsyncHookState<T, U = string>(load: () => Promise<T>) {
         setValue(err(e));
       });
 
-    return () => {};
-  }, [load]);
+    return () => {
+      signal.abort = true;
+    };
+  }, [load, setValue]);
 
   return {
     value,

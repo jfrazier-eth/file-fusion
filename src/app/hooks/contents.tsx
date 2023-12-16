@@ -6,6 +6,7 @@ import {
   useAsyncDependentLoad,
   useAsyncHookState,
 } from "./async-hook";
+import { UseStorageResponse } from "./storage";
 
 export enum ContentKind {
   Directory,
@@ -22,12 +23,17 @@ interface UseContentResponse {
   items: Content[];
 }
 
-const getLoad = (path: Ready<string>) => {
-  return () => invoke<UseContentResponse>("contents", { path: path.data });
+const getLoad = (response: Ready<UseStorageResponse>) => {
+  return () =>
+    invoke<UseContentResponse>("contents", {
+      storage: response.data,
+    });
 };
 
-export const useContents = (dir: AsyncHook<string, unknown>) => {
-  const load = useAsyncDependentLoad(dir, getLoad);
+export const useContents = (
+  storage: AsyncHook<UseStorageResponse, unknown>,
+) => {
+  const load = useAsyncDependentLoad(storage, getLoad);
   const { value: contents } = useAsyncHookState<UseContentResponse>(load);
 
   return contents;

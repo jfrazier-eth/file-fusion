@@ -38,9 +38,8 @@ impl serde::Serialize for Error {
     }
 }
 
-#[tauri::command]
-fn home_dir() -> Result<String, Error> {
-    println!("Getting home dir",);
+fn get_home_dir() -> Result<String, Error> {
+    println!("Getting home dir");
     let user_dirs = UserDirs::new().ok_or(Error::HomeDirNotFound)?;
     let home_dir = user_dirs.home_dir();
     let home_dir = home_dir
@@ -51,10 +50,15 @@ fn home_dir() -> Result<String, Error> {
     Ok(String::from(home_dir))
 }
 
+#[tauri::command]
+fn home_dir() -> Result<String, Error> {
+    get_home_dir()
+}
+
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone, Copy)]
 enum ContentKind {
-    Directory,
-    File,
+    Directory = 0,
+    File = 1,
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
@@ -84,9 +88,24 @@ struct Contents {
     items: Vec<Content>,
 }
 
+#[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
+enum StorageKind {
+    Local = 0,
+    ObjectStore = 1,
+    Arweave = 2,
+}
+
+#[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
+struct Storage {
+    pub id: String,
+    pub name: String,
+    pub path: String,
+    pub kind: StorageKind,
+}
+
 #[tauri::command]
-async fn contents(path: String) -> Result<Contents, Error> {
-    let dir_path = Path::new(&path);
+async fn contents(storage: Storage) -> Result<Contents, Error> {
+    let dir_path = Path::new(&storage.path);
 
     if !dir_path.is_dir() {
         return Err(Error::CannotListContentsOfAFile);
@@ -106,12 +125,35 @@ async fn contents(path: String) -> Result<Contents, Error> {
         items.push(item);
     }
 
-    Ok(Contents { items, path })
+    Ok(Contents {
+        items,
+        path: storage.path,
+    })
+}
+
+#[tauri::command]
+async fn storage(id: Option<String>, path: Option<String>) -> Result<Storage, Error> {
+    let id = match id {
+        Some(id) => id,
+        None => String::from("default"),
+    };
+
+    let path = match path {
+        Some(path) => path,
+        None => get_home_dir()?,
+    };
+
+    Ok(Storage {
+        id,
+        path,
+        name: String::from("Local"),
+        kind: StorageKind::Local,
+    })
 }
 
 fn main() {
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![greet, home_dir, contents])
+        .invoke_handler(tauri::generate_handler![greet, home_dir, contents, storage])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
