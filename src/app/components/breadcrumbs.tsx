@@ -5,7 +5,8 @@ import { Storage } from "../hooks/storage";
 export const Breadcrumbs = (props: { storage: AsyncHook<Storage, string> }) => {
   if (isOk(props.storage)) {
     const storage = props.storage.data;
-    const parts = storage.path.split("/");
+    const parts = storage.path.split("/").filter((item) => !!item);
+    parts.unshift("");
     const crumbs = parts.map((name, index) => {
       name = name.length === 0 ? "/" : name;
       let path = parts.slice(0, index + 1).join("/");
