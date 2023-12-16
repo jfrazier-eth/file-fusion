@@ -40,12 +40,10 @@ export default function Home() {
   const [container, { height: containerHeight }] = useElementSize();
   const [header, { height: headerHeight }] = useElementSize();
 
-  const title = isOk(storage) ? storage.data.name : "Loading...";
-
   return (
     <div className="h-screen w-screen flex flex-col" ref={container}>
       <div ref={header}>
-        <Header title={title} storage={storage}>
+        <Header storage={storage}>
           <button
             className="btn btn-outline btn-sm btn-primary"
             onClick={() => {
