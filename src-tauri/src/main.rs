@@ -39,14 +39,12 @@ impl serde::Serialize for Error {
 }
 
 fn get_home_dir() -> Result<String, Error> {
-    println!("Getting home dir");
     let user_dirs = UserDirs::new().ok_or(Error::HomeDirNotFound)?;
     let home_dir = user_dirs.home_dir();
     let home_dir = home_dir
         .as_os_str()
         .to_str()
         .ok_or(Error::HomeDirNotFound)?;
-    println!("home_dir test, {}", home_dir);
     Ok(String::from(home_dir))
 }
 

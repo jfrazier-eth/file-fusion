@@ -14,9 +14,7 @@ export const Header = (props: {
         <div className="flex flex-row items-center justify-between">
           <div className="border-r pr-4 border-primary">
             <Link href="/">
-              <h2 className="text-lg font-semibold hover:text-blue-400">
-                {title}
-              </h2>
+              <h2 className="text-lg font-semibold">{title}</h2>
             </Link>
           </div>
           <h3 className="text-md font-semibold text-left ml-4">

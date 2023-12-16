@@ -7,10 +7,13 @@ export const Breadcrumbs = (props: { storage: AsyncHook<Storage, string> }) => {
     const storage = props.storage.data;
     const parts = storage.path.split("/");
     const crumbs = parts.map((name, index) => {
+      name = name.length === 0 ? "/" : name;
+      let path = parts.slice(0, index + 1).join("/");
+      path = path.length === 0 ? "/" : path;
       return {
         ...storage,
         name,
-        path: parts.slice(0, index + 1).join("/"),
+        path,
       };
     });
 
