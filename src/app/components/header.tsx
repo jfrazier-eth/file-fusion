@@ -1,7 +1,13 @@
 import Link from "next/link";
 import { title } from "../constants";
+import { Storage } from "../hooks/storage";
+import { AsyncHook } from "../hooks/async-hook";
+import { Breadcrumbs } from "./breadcrumbs";
 
-export const Header = (props: { children: React.ReactNode; title: string }) => {
+export const Header = (props: {
+  children: React.ReactNode;
+  storage: AsyncHook<Storage, string>;
+}) => {
   return (
     <div className="w-full flex flex-col">
       <div className="flex flex-row w-full items-center justify-between p-4 border-b border-primary">
@@ -14,7 +20,7 @@ export const Header = (props: { children: React.ReactNode; title: string }) => {
             </Link>
           </div>
           <h3 className="text-md font-semibold text-left ml-4">
-            {props.title}
+            <Breadcrumbs storage={props.storage} />
           </h3>
         </div>
         {props.children}

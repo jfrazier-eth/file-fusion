@@ -45,7 +45,7 @@ export default function Home() {
   return (
     <div className="h-screen w-screen flex flex-col" ref={container}>
       <div ref={header}>
-        <Header title={title}>
+        <Header title={title} storage={storage}>
           <button
             className="btn btn-outline btn-sm btn-primary"
             onClick={() => {
