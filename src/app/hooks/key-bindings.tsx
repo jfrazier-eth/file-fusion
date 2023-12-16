@@ -1,6 +1,12 @@
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
+interface KeyBinding {
+  metaKey: boolean;
+  key: string;
+  description: string;
+}
+
 const config = {
   back: {
     metaKey: true,
@@ -12,14 +18,27 @@ const config = {
     key: "]",
     description: "Navigate to the previous page",
   },
-} as const;
+  newFolder: {
+    metaKey: true,
+    key: "n",
+    description: "Open the new folder modal",
+  },
+} satisfies Record<string, KeyBinding>;
 
-export const useKeyBindings = () => {
+const entries = <K extends string, T>(o: Record<K, T>): [K, T][] => {
+  return Object.entries(o) as [K, T][];
+};
+
+interface Props {
+  toggleNewFolderModal: () => void;
+}
+
+export const useKeyBindings = ({ toggleNewFolderModal }: Props) => {
   const router = useRouter();
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      const items = Object.entries(config);
-
+      const items = entries<keyof typeof config, KeyBinding>(config);
+      console.log(`Key press Meta: ${event.metaKey} Key: ${event.key}`);
       for (const [name, kb] of items) {
         if (kb.metaKey === event.metaKey && kb.key === event.key) {
           switch (name) {
@@ -28,6 +47,9 @@ export const useKeyBindings = () => {
             }
             case "forward": {
               router.forward();
+            }
+            case "newFolder": {
+              toggleNewFolderModal();
             }
           }
         }

@@ -1,22 +1,19 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect } from "react";
 
 export function Modal({
   isOpen,
   close,
-  save,
+  title,
+  children,
 }: {
   isOpen: boolean;
   close: () => void;
-  save: (value: string) => void;
+  title: string;
+  children: React.ReactNode;
 }) {
-  const [value, setValue] = useState("");
-  const buttonRef = useRef<HTMLButtonElement>(null);
-
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Enter") {
-        buttonRef.current?.click();
-      } else if (event.key === "Escape") {
+      if (event.key === "Escape") {
         close();
       }
     };
@@ -61,36 +58,8 @@ export function Modal({
           >
             ✕
           </button>
-          <h3 className="font-bold text-lg text-center w-full mb-2">
-            New Folder
-          </h3>
-
-          <div className="flex flex-row">
-            <input
-              type="text"
-              placeholder="Name"
-              value={value}
-              onChange={(e) => {
-                setValue(e.target.value);
-              }}
-              className="input input-bordered grow"
-            />
-            <button
-              className="btn btn-secondary ml-2"
-              ref={buttonRef}
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                if (value.length > 0) {
-                  save(value);
-                  setValue("");
-                }
-                close();
-              }}
-            >
-              Save
-            </button>
-          </div>
+          <h3 className="font-bold text-lg text-center w-full mb-2">{title}</h3>
+          {children}
         </div>
       </div>
     </>

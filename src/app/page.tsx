@@ -1,8 +1,7 @@
 "use client";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { Header } from "./components/header";
 import { FolderIcon } from "./icons/folder";
-import { Modal } from "./components/modal";
 import { Locations } from "./components/locations";
 import { isOk } from "./hooks/async-hook";
 import { useContents } from "./hooks/contents";
@@ -11,12 +10,21 @@ import { useElementSize } from "./hooks/element-size";
 import { useStorage } from "./hooks/storage";
 import { useParams } from "./hooks/params";
 import { useKeyBindings } from "./hooks/key-bindings";
+import { NewFolderModal } from "./components/new-folder-modal";
 
 export default function Home() {
   let [isOpen, setIsOpen] = useState(false);
   const params = useParams();
   const storage = useStorage(params);
-  useKeyBindings();
+
+  const toggleNewFolderModal = useCallback(
+    () => setIsOpen((prev) => !prev),
+    [setIsOpen],
+  );
+
+  useKeyBindings({
+    toggleNewFolderModal,
+  });
 
   const contents = useContents(storage);
   const [container, { height: containerHeight }] = useElementSize();
@@ -55,13 +63,13 @@ export default function Home() {
         </div>
       </div>
 
-      <Modal
+      <NewFolderModal
         isOpen={isOpen}
         close={() => setIsOpen(false)}
         save={(value) => {
           console.log(`Saving ${value}`);
         }}
-      ></Modal>
+      />
     </div>
   );
 }
