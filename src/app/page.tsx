@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Header } from "./components/header";
 import { FolderIcon } from "./icons/folder";
 import { Modal } from "./components/modal";
@@ -9,32 +9,14 @@ import { useContents } from "./hooks/contents";
 import { Contents } from "./components/contents";
 import { useElementSize } from "./hooks/element-size";
 import { useStorage } from "./hooks/storage";
-import { useSearchParams } from "next/navigation";
-
-const useParams = () => {
-  const query = useSearchParams();
-  const [params, setParams] = useState<{
-    id: string | null;
-    path: string | null;
-  }>({ id: null, path: null });
-
-  useEffect(() => {
-    const id = query.get("id");
-    const path = query.get("path");
-
-    setParams({
-      id,
-      path,
-    });
-  }, [query]);
-
-  return params;
-};
+import { useParams } from "./hooks/params";
+import { useKeyBindings } from "./hooks/key-bindings";
 
 export default function Home() {
   let [isOpen, setIsOpen] = useState(false);
   const params = useParams();
   const storage = useStorage(params);
+  useKeyBindings();
 
   const contents = useContents(storage);
   const [container, { height: containerHeight }] = useElementSize();
