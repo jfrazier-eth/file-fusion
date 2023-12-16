@@ -11,9 +11,11 @@ import { useStorage } from "./hooks/storage";
 import { useParams } from "./hooks/params";
 import { useKeyBindings } from "./hooks/key-bindings";
 import { NewFolderModal } from "./components/new-folder-modal";
+import { NewStorageModal } from "./components/new-storage-modal";
 
 export default function Home() {
   let [isOpen, setIsOpen] = useState(false);
+  let [isNewStorageModalOpen, setIsNewStorageModalOpen] = useState(false);
   const params = useParams();
   const storage = useStorage(params);
 
@@ -22,8 +24,14 @@ export default function Home() {
     [setIsOpen],
   );
 
+  const toggleNewStorageModal = useCallback(
+    () => setIsNewStorageModalOpen((prev) => !prev),
+    [setIsNewStorageModalOpen],
+  );
+
   useKeyBindings({
     toggleNewFolderModal,
+    toggleNewStorageModal,
   });
 
   const contents = useContents(storage);
@@ -40,10 +48,10 @@ export default function Home() {
               setIsOpen(true);
             }}
           >
-            <>
-              New Folder
+            <div className="flex flex-row justify-center">
+              <p className="mr-2">+</p>
               <FolderIcon />
-            </>
+            </div>
           </button>
         </Header>
       </div>
@@ -53,7 +61,7 @@ export default function Home() {
           containerHeight - headerHeight
         }px] overflow-clip`}
       >
-        <Locations />
+        <Locations onNewClick={() => setIsNewStorageModalOpen(true)} />
         <div className="p-2 text-sm h-full max-h-full grow overflow-clip">
           {isOk(contents) && isOk(storage) ? (
             <Contents items={contents.data.items} storage={storage.data} />
@@ -66,6 +74,13 @@ export default function Home() {
       <NewFolderModal
         isOpen={isOpen}
         close={() => setIsOpen(false)}
+        save={(value) => {
+          console.log(`Saving ${value}`);
+        }}
+      />
+      <NewStorageModal
+        isOpen={isNewStorageModalOpen}
+        close={() => setIsNewStorageModalOpen(false)}
         save={(value) => {
           console.log(`Saving ${value}`);
         }}

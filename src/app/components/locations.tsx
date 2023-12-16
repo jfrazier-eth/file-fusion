@@ -1,7 +1,9 @@
 import { StorageKind, Storage } from "../hooks/storage";
 import { StorageLink } from "./storage-link";
 
-interface Props {}
+interface Props {
+  onNewClick: () => void;
+}
 
 const mockLocations: Storage[] = [
   {
@@ -38,7 +40,14 @@ export function Locations(props: Props) {
       </ul>
 
       <div>
-        <button className="btn btn-primary btn-sm w-full rounded-none m-0 py-0">
+        <button
+          className="btn btn-primary btn-sm w-full rounded-none m-0 py-0"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            props.onNewClick();
+          }}
+        >
           +
         </button>
       </div>

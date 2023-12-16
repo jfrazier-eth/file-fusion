@@ -23,6 +23,11 @@ const config = {
     key: "n",
     description: "Open the new folder modal",
   },
+  newStorage: {
+    metaKey: true,
+    key: "s",
+    description: "Open the new storage modal",
+  },
 } satisfies Record<string, KeyBinding>;
 
 const entries = <K extends string, T>(o: Record<K, T>): [K, T][] => {
@@ -31,9 +36,13 @@ const entries = <K extends string, T>(o: Record<K, T>): [K, T][] => {
 
 interface Props {
   toggleNewFolderModal: () => void;
+  toggleNewStorageModal: () => void;
 }
 
-export const useKeyBindings = ({ toggleNewFolderModal }: Props) => {
+export const useKeyBindings = ({
+  toggleNewFolderModal,
+  toggleNewStorageModal,
+}: Props) => {
   const router = useRouter();
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -50,6 +59,9 @@ export const useKeyBindings = ({ toggleNewFolderModal }: Props) => {
             }
             case "newFolder": {
               toggleNewFolderModal();
+            }
+            case "newStorage": {
+              toggleNewStorageModal();
             }
           }
         }
