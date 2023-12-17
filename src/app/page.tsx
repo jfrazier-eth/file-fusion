@@ -49,8 +49,8 @@ export default function Home() {
             }}
           >
             <div className="flex flex-row justify-center">
-              <p className="mr-2">+</p>
               <FolderIcon />
+              <p className="ml-1 text-xs text-neutral">(cmd + n)</p>
             </div>
           </button>
         </Header>

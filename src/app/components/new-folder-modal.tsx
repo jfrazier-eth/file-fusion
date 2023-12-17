@@ -34,7 +34,7 @@ export const NewFolderModal = ({ isOpen, close, save }: Props) => {
 
   return (
     <Modal isOpen={isOpen} close={close} title="New Folder">
-      <div className="flex flex-row">
+      <div className="flex flex-row mb-2">
         <input
           ref={inputRef}
           type="text"
@@ -43,10 +43,10 @@ export const NewFolderModal = ({ isOpen, close, save }: Props) => {
           onChange={(e) => {
             setValue(e.target.value);
           }}
-          className="input input-bordered grow"
+          className="input input-bordered grow input-sm"
         />
         <button
-          className="btn btn-secondary ml-2"
+          className="btn btn-primary btn-sm ml-2"
           ref={buttonRef}
           onClick={(e) => {
             e.preventDefault();

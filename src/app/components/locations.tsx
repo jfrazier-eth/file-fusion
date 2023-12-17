@@ -1,4 +1,5 @@
 import { StorageKind, Storage } from "../hooks/storage";
+import { HardDriveIcon } from "../icons/hard-drive";
 import { StorageLink } from "./storage-link";
 
 interface Props {
@@ -23,20 +24,14 @@ export function Locations(props: Props) {
       <ul className="menu [&_li>*]:rounded-none p-0">
         {locations.map((item) => {
           return (
-            <li key={item.id} className="hover:bg-neutral">
+            <li
+              key={item.id}
+              className="hover:bg-neutral border-b border-b-neutral"
+            >
               <StorageLink storage={item}>{item.name}</StorageLink>
             </li>
           );
         })}
-        {/* <li>
-          <a>Local</a>
-        </li>
-        <li>
-          <a>Arweave</a>
-        </li>
-        <li>
-          <a>Object store</a>
-        </li> */}
       </ul>
 
       <div>
@@ -48,7 +43,10 @@ export function Locations(props: Props) {
             props.onNewClick();
           }}
         >
-          +
+          <div className="flex flex-row items-center justify-center">
+            <HardDriveIcon />
+            <p className="ml-1 text-xs text-neutral">(cmd + s)</p>
+          </div>
         </button>
       </div>
     </div>

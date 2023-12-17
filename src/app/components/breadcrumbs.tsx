@@ -23,7 +23,7 @@ export const Breadcrumbs = (props: { storage: AsyncHook<Storage, string> }) => {
         <ul>
           {crumbs.map((crumb) => {
             return (
-              <li key={crumb.path}>
+              <li key={crumb.path} className="before:text-accent">
                 <StorageLink storage={crumb}>{crumb.name}</StorageLink>
               </li>
             );

@@ -38,7 +38,7 @@ export function Modal({
         }}
       />
       <div
-        className="modal"
+        className="modal min-w-[350px]"
         role="dialog"
         onClick={(e) => {
           e.preventDefault();
