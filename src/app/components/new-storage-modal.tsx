@@ -11,32 +11,12 @@ import { StorageKind, Storage } from "../hooks/storage";
 import { Modal } from "./modal";
 import { useHomeDir } from "../hooks/home-dir";
 import { isOk } from "../hooks/async-hook";
-
-interface LocalStorage extends Storage {
-  kind: StorageKind.Local;
-}
-
-interface ArweaveStorage extends Storage {
-  kind: StorageKind.Arweave;
-}
-
-interface ObjectStoreStorage extends Storage {
-  kind: StorageKind.ObjectStore;
-  access: {
-    region: string;
-    bucket: string;
-    accessKey: string;
-    accessKeySecret: string;
-    endpoint: string;
-  };
-}
-
-type StorageWithCreds = LocalStorage | ArweaveStorage | ObjectStoreStorage;
+import { CreateStorageMessage } from "../lib/messages";
 
 interface Props {
   isOpen: boolean;
   close: () => void;
-  save: (data: StorageWithCreds) => void;
+  save: (data: CreateStorageMessage) => void;
 }
 
 const labels = {
@@ -80,7 +60,10 @@ const SelectStorageKind = ({
               type="checkbox"
               checked={checked}
               className="checkbox checkbox-primary checkbox-sm"
-              onClick={() => {
+              // onClick={() => {
+              //   setSelected(kind);
+              // }}
+              onChange={(_) => {
                 setSelected(kind);
               }}
             />
@@ -97,9 +80,9 @@ const LocalStorageEditor = forwardRef(
       storage,
       setStorage,
     }: {
-      storage: Omit<LocalStorage, "path"> & { path: string | null };
+      storage: Omit<Storage, "path"> & { path: string | null };
       setStorage: Dispatch<
-        SetStateAction<Omit<LocalStorage, "path"> & { path: string | null }>
+        SetStateAction<Omit<Storage, "path"> & { path: string | null }>
       >;
     },
     ref: ForwardedRef<HTMLInputElement>,
@@ -150,13 +133,38 @@ export const NewStorageModal = ({ isOpen, close, save }: Props) => {
   const [kind, setKind] = useState<StorageKind>(StorageKind.Local);
 
   const [localStorage, setLocalStorage] = useState<
-    Omit<LocalStorage, "path"> & { path: string | null }
+    Omit<Storage, "path"> & { path: string | null }
   >({
-    id: "asdf",
+    id: 0, // TODO
     name: "",
     path: null,
     kind: StorageKind.Local,
   });
+
+  const handleSave = () => {
+    let message: CreateStorageMessage;
+    switch (kind) {
+      case StorageKind.Local: {
+        message = {
+          storage: {
+            kind: StorageKind.Local,
+            name: localStorage.name,
+            path: localStorage.path || "",
+          },
+          connection: {
+            Local: {},
+          },
+        };
+        break;
+      }
+      default: {
+        throw new Error("Not yet implemented");
+      }
+    }
+
+    save(message);
+    close();
+  };
 
   return (
     <Modal isOpen={isOpen} close={close} title="New Storage Location">
@@ -186,7 +194,7 @@ export const NewStorageModal = ({ isOpen, close, save }: Props) => {
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
-            close();
+            handleSave();
           }}
         >
           Save

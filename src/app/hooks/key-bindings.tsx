@@ -79,5 +79,5 @@ export const useKeyBindings = ({
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [router]);
+  }, [router, toggleNewFolderModal, toggleNewStorageModal]);
 };

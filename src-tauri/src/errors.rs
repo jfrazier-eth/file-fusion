@@ -6,6 +6,16 @@ pub enum Error {
     #[error("cannot list contents of a file")]
     CannotListContentsOfAFile,
 
+    #[error("failed to deserialize events")]
+    FailedToDeserializeEvents,
+    #[error("failed to serialize events")]
+    FailedToSerializeEvents,
+    #[error("failed to write to events file")]
+    FailedToWriteToEventsFile,
+
+    #[error("failed to get state lock")]
+    FailedToGetStateLock,
+
     #[error("failed to parse path")]
     ParsePath,
 

@@ -7,17 +7,22 @@ import { isOk } from "./hooks/async-hook";
 import { useContents } from "./hooks/contents";
 import { Contents } from "./components/contents";
 import { useElementSize } from "./hooks/element-size";
-import { useStorage } from "./hooks/storage";
+import { useStorage, useStorages } from "./hooks/storage";
 import { useParams } from "./hooks/params";
 import { useKeyBindings } from "./hooks/key-bindings";
 import { NewFolderModal } from "./components/new-folder-modal";
 import { NewStorageModal } from "./components/new-storage-modal";
+import { Messages } from "./lib/messages";
+import { useMessages } from "./hooks/messages";
 
 export default function Home() {
   let [isOpen, setIsOpen] = useState(false);
   let [isNewStorageModalOpen, setIsNewStorageModalOpen] = useState(false);
   const params = useParams();
   const storage = useStorage(params);
+  const messages = useMessages();
+
+  const storages = useStorages();
 
   const toggleNewFolderModal = useCallback(
     () => setIsOpen((prev) => !prev),
@@ -61,7 +66,10 @@ export default function Home() {
           containerHeight - headerHeight
         }px] overflow-clip`}
       >
-        <Locations onNewClick={() => setIsNewStorageModalOpen(true)} />
+        <Locations
+          storage={storages}
+          onNewClick={() => setIsNewStorageModalOpen(true)}
+        />
         <div className="p-2 text-sm h-full max-h-full grow overflow-clip">
           {isOk(contents) && isOk(storage) ? (
             <Contents items={contents.data.items} storage={storage.data} />
@@ -82,7 +90,10 @@ export default function Home() {
         isOpen={isNewStorageModalOpen}
         close={() => setIsNewStorageModalOpen(false)}
         save={(value) => {
-          console.log(`Saving ${value}`);
+          const message: Messages = {
+            CreateStorage: value,
+          };
+          messages.update(message);
         }}
       />
     </div>

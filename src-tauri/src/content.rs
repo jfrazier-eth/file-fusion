@@ -35,7 +35,7 @@ pub struct Contents {
     items: Vec<Content>,
 }
 
-pub async fn get_contents(storage: Storage) -> Result<Contents, Error> {
+pub fn get_contents(storage: Storage) -> Result<Contents, Error> {
     let dir_path = Path::new(&storage.path);
 
     if !dir_path.is_dir() {
