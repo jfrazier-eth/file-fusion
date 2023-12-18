@@ -26,7 +26,8 @@ export const useContents = (storage: Storage) => {
     ],
     queryFn: () =>
       invoke<UseContentResponse>("contents", {
-        storage,
+        id: storage.id,
+        path: storage.path,
       }),
   });
 

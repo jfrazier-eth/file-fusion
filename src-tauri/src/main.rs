@@ -20,7 +20,15 @@ fn home_dir() -> Result<String, Error> {
 }
 
 #[tauri::command]
-fn contents(storage: Storage) -> Result<Contents, Error> {
+fn contents<'a>(
+    state: tauri::State<'a, Mutex<StateManager>>,
+    id: usize,
+    path: String,
+) -> Result<Contents, Error> {
+    let state = state.lock().map_err(|_| Error::FailedToGetStateLock)?;
+    let storage = state.get_storage(id)?.ok_or(Error::NotFound)?;
+
+    storage.with_path(path);
     get_contents(storage)
 }
 
