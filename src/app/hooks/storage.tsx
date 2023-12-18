@@ -1,7 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { invoke } from "@tauri-apps/api/tauri";
 import { Messages } from "../lib/messages";
-import { useEffect } from "react";
 
 export enum StorageKind {
   Local = "Local",

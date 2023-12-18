@@ -1,9 +1,10 @@
-import { useStorages } from "../hooks/storage";
+import { Storage, useStorages } from "../hooks/storage";
 import { HardDriveIcon } from "../icons/hard-drive";
 import { StorageLink } from "./storage-link";
 
 interface Props {
   onNewClick: () => void;
+  storage: Storage;
 }
 
 export function Locations(props: Props) {
@@ -23,7 +24,9 @@ export function Locations(props: Props) {
           return (
             <li
               key={item.id}
-              className="hover:bg-neutral border-b border-b-neutral"
+              className={`${
+                item.id === props.storage.id ? "text-primary" : ""
+              } hover:bg-neutral border-b border-b-neutral`}
             >
               <StorageLink storage={item}>{item.name}</StorageLink>
             </li>

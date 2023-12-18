@@ -1,16 +1,16 @@
-import {
-  Dispatch,
-  ForwardedRef,
-  SetStateAction,
-  forwardRef,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
-import { StorageKind, Storage } from "../hooks/storage";
+import { useEffect, useRef, useState } from "react";
+import { StorageKind } from "../hooks/storage";
 import { Modal } from "./modal";
-import { useHomeDir } from "../hooks/home-dir";
 import { CreateStorageMessage } from "../lib/messages";
+import { SelectStorageKind } from "./select-storage-kind";
+import {
+  LocalStorageEditor,
+  LocalStorageEditorState,
+} from "./local-storage-editor";
+import {
+  ObjectStoreEditor,
+  ObjectStoreEditorState,
+} from "./object-store-editor";
 
 interface Props {
   isOpen: boolean;
@@ -18,133 +18,40 @@ interface Props {
   save: (data: CreateStorageMessage) => void;
 }
 
-const labels = {
-  [StorageKind.Local]: "Local",
-  [StorageKind.ObjectStore]: "Object Store",
-  [StorageKind.Arweave]: "Arweave",
-} as const;
-
-const getStorageKindOptions = (selected: StorageKind) => {
-  return Object.values(StorageKind).map((kind) => {
-    return {
-      kind,
-      label: labels[kind],
-      checked: kind === selected,
-    };
-  });
-};
-
-const SelectStorageKind = ({
-  selected,
-  setSelected,
-}: {
-  selected: StorageKind;
-  setSelected: (item: StorageKind) => void;
-}) => {
-  const [storageKinds, setStorageKinds] = useState(
-    getStorageKindOptions(selected),
-  );
-
-  useEffect(() => {
-    setStorageKinds(getStorageKindOptions(selected));
-  }, [selected, setStorageKinds]);
-
-  return (
-    <label className="form-control flex flex-row w-full items-center justify-between">
-      {storageKinds.map(({ kind, checked, label }) => {
-        return (
-          <label className="label cursor-pointer" key={kind}>
-            <span className="label-text mr-2">{label}</span>
-            <input
-              type="checkbox"
-              checked={checked}
-              className="checkbox checkbox-primary checkbox-sm"
-              // onClick={() => {
-              //   setSelected(kind);
-              // }}
-              onChange={(_) => {
-                setSelected(kind);
-              }}
-            />
-          </label>
-        );
-      })}
-    </label>
-  );
-};
-
-const LocalStorageEditor = forwardRef(
-  (
-    {
-      storage,
-      setStorage,
-    }: {
-      storage: Omit<Storage, "path"> & { path: string | null };
-      setStorage: Dispatch<
-        SetStateAction<Omit<Storage, "path"> & { path: string | null }>
-      >;
-    },
-    ref: ForwardedRef<HTMLInputElement>,
-  ) => {
-    const { query: homeDir } = useHomeDir();
-
-    useEffect(() => {
-      if (storage.path === null && homeDir.isSuccess) {
-        setStorage((prev) => ({
-          ...prev,
-          path: homeDir.data,
-        }));
-      }
-    }, [storage, homeDir, setStorage]);
-
-    return (
-      <div className="flex flex-col w-full">
-        <input
-          ref={ref}
-          type="text"
-          placeholder="Name"
-          value={storage.name}
-          onChange={(e) => {
-            setStorage((prev) => ({ ...prev, name: e.target.value }));
-          }}
-          className="input input-bordered input-sm rounded-sm my-2 grow"
-        />
-
-        <input
-          type="text"
-          placeholder="Path"
-          value={storage.path || ""}
-          onChange={(e) => {
-            setStorage((prev) => ({ ...prev, path: e.target.value }));
-          }}
-          className="input input-bordered input-sm rounded-sm my-2 grow"
-        />
-      </div>
-    );
-  },
-);
-LocalStorageEditor.displayName = "LocalStorageEditor";
-
 export const NewStorageModal = ({ isOpen, close, save }: Props) => {
   const buttonRef = useRef<HTMLButtonElement>(null);
   const initialInputRef = useRef<HTMLInputElement>(null);
 
   const [kind, setKind] = useState<StorageKind>(StorageKind.Local);
 
-  const [localStorage, setLocalStorage] = useState<
-    Omit<Storage, "path"> & { path: string | null }
-  >({
-    id: 0, // TODO
-    name: "",
+  const [localStorage, setLocalStorage] = useState<LocalStorageEditorState>({
+    id: null,
     path: null,
+    name: "",
     kind: StorageKind.Local,
+  });
+
+  const [objectStore, setObjectStore] = useState<ObjectStoreEditorState>({
+    storage: {
+      id: null,
+      name: "",
+      path: "",
+      kind: StorageKind.ObjectStore,
+    },
+    connection: {
+      region: "",
+      bucket: "",
+      accessKey: "",
+      accessKeySecret: "",
+      endpoint: "",
+    },
   });
 
   useEffect(() => {
     if (isOpen && initialInputRef.current) {
       initialInputRef.current.focus();
     }
-  }, [initialInputRef, isOpen]);
+  }, [initialInputRef, isOpen, kind]);
 
   const handleSave = () => {
     let message: CreateStorageMessage;
@@ -158,6 +65,21 @@ export const NewStorageModal = ({ isOpen, close, save }: Props) => {
           },
           connection: {
             Local: {},
+          },
+        };
+        break;
+      }
+      case StorageKind.ObjectStore: {
+        message = {
+          storage: {
+            kind: StorageKind.ObjectStore,
+            name: objectStore.storage.name,
+            path: objectStore.storage.path || "",
+          },
+          connection: {
+            ObjectStore: {
+              ...objectStore.connection,
+            },
           },
         };
         break;
@@ -178,7 +100,7 @@ export const NewStorageModal = ({ isOpen, close, save }: Props) => {
           <SelectStorageKind selected={kind} setSelected={setKind} />
         </div>
 
-        <div className="grow flex flex-col">
+        <div className="grow flex flex-col mb-4">
           {kind === StorageKind.Local ? (
             <LocalStorageEditor
               storage={localStorage}
@@ -186,7 +108,11 @@ export const NewStorageModal = ({ isOpen, close, save }: Props) => {
               ref={initialInputRef}
             />
           ) : kind === StorageKind.ObjectStore ? (
-            <div>Object Store</div>
+            <ObjectStoreEditor
+              state={objectStore}
+              setState={setObjectStore}
+              ref={initialInputRef}
+            />
           ) : (
             <div></div>
           )}

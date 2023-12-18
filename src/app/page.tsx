@@ -67,7 +67,10 @@ export default function Home() {
           containerHeight - headerHeight
         }px] overflow-clip`}
       >
-        <Locations onNewClick={() => setIsNewStorageModalOpen(true)} />
+        <Locations
+          storage={storage.data}
+          onNewClick={() => setIsNewStorageModalOpen(true)}
+        />
         <div className="p-2 text-sm h-full max-h-full grow overflow-clip">
           <Contents storage={storage.data} />
         </div>
