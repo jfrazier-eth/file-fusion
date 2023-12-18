@@ -10,7 +10,6 @@ import {
 import { StorageKind, Storage } from "../hooks/storage";
 import { Modal } from "./modal";
 import { useHomeDir } from "../hooks/home-dir";
-import { isOk } from "../hooks/async-hook";
 import { CreateStorageMessage } from "../lib/messages";
 
 interface Props {
@@ -87,10 +86,10 @@ const LocalStorageEditor = forwardRef(
     },
     ref: ForwardedRef<HTMLInputElement>,
   ) => {
-    const homeDir = useHomeDir();
+    const { query: homeDir } = useHomeDir();
 
     useEffect(() => {
-      if (storage.path === null && isOk(homeDir)) {
+      if (storage.path === null && homeDir.isSuccess) {
         setStorage((prev) => ({
           ...prev,
           path: homeDir.data,
