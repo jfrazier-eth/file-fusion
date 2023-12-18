@@ -20,7 +20,10 @@ interface UseContentResponse {
 
 export const useContents = (storage: Storage) => {
   const query = useQuery({
-    queryKey: ["storage:contents"],
+    queryKey: [
+      "storage:contents",
+      `storage:contents:${storage.id}:path:${storage.path}`,
+    ],
     queryFn: () =>
       invoke<UseContentResponse>("contents", {
         storage,

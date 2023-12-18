@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { invoke } from "@tauri-apps/api/tauri";
 import { Messages } from "../lib/messages";
+import { useEffect } from "react";
 
 export enum StorageKind {
   Local = "Local",
@@ -47,7 +48,7 @@ export const useStorage = (params: {
   const queryClient = useQueryClient();
 
   const query = useQuery({
-    queryKey: ["storage"],
+    queryKey: ["storage", `storage:${params.id}:${params.path}`],
     queryFn: () =>
       invoke<UseStorageResponse>("storage", {
         id: params.id,
