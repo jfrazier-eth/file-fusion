@@ -41,8 +41,8 @@ export const NewStorageModal = ({ isOpen, close, save }: Props) => {
     connection: {
       region: "",
       bucket: "",
-      accessKey: "",
-      accessKeySecret: "",
+      access_key: "",
+      access_key_secret: "",
       endpoint: "",
     },
   });

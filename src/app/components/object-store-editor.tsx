@@ -86,13 +86,13 @@ export const ObjectStoreEditor = forwardRef(
           <TextInput
             placeholder="Access key"
             label="Access key"
-            value={state.connection.accessKey}
+            value={state.connection.access_key}
             onChange={(value) => {
               setState((prev) => ({
                 ...prev,
                 connection: {
                   ...prev.connection,
-                  accessKey: value,
+                  access_key: value,
                 },
               }));
             }}
@@ -101,13 +101,13 @@ export const ObjectStoreEditor = forwardRef(
           <TextInput
             placeholder="Access key secret"
             label="Access key secret"
-            value={state.connection.accessKeySecret}
+            value={state.connection.access_key_secret}
             onChange={(value) => {
               setState((prev) => ({
                 ...prev,
                 connection: {
                   ...prev.connection,
-                  accessKeySecret: value,
+                  access_key_secret: value,
                 },
               }));
             }}

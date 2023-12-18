@@ -20,8 +20,8 @@ export interface LocalConnection {}
 export interface ObjectStoreConnection {
   region: string;
   bucket: string;
-  accessKey: string;
-  accessKeySecret: string;
+  access_key: string;
+  access_key_secret: string;
   endpoint: string;
 }
 
