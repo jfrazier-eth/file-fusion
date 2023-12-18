@@ -1,12 +1,11 @@
 import Link from "next/link";
 import { title } from "../constants";
 import { Storage } from "../hooks/storage";
-import { AsyncHook } from "../hooks/async-hook";
 import { Breadcrumbs } from "./breadcrumbs";
 
 export const Header = (props: {
   children: React.ReactNode;
-  storage: AsyncHook<Storage, string>;
+  storage: Storage;
 }) => {
   return (
     <div className="w-full flex flex-col">

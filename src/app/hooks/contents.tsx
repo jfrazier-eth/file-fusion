@@ -1,12 +1,7 @@
 "use client";
 import { invoke } from "@tauri-apps/api/tauri";
-import {
-  AsyncHook,
-  Ready,
-  useAsyncDependentLoad,
-  useAsyncHookState,
-} from "./async-hook";
-import { UseStorageResponse } from "./storage";
+import { Storage } from "./storage";
+import { useQuery } from "@tanstack/react-query";
 
 export enum ContentKind {
   Directory = "Directory",
@@ -23,18 +18,16 @@ interface UseContentResponse {
   items: Content[];
 }
 
-const getLoad = (response: Ready<UseStorageResponse>) => {
-  return () =>
-    invoke<UseContentResponse>("contents", {
-      storage: response.data,
-    });
-};
+export const useContents = (storage: Storage) => {
+  const query = useQuery({
+    queryKey: ["storage:contents"],
+    queryFn: () =>
+      invoke<UseContentResponse>("contents", {
+        storage,
+      }),
+  });
 
-export const useContents = (
-  storage: AsyncHook<UseStorageResponse, unknown>,
-) => {
-  const load = useAsyncDependentLoad(storage, getLoad);
-  const { value: contents } = useAsyncHookState<UseContentResponse>(load);
-
-  return contents;
+  return {
+    query,
+  };
 };

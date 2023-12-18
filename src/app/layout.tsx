@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { fonts } from "./fonts";
 import "./globals.css";
 import { description, title } from "./constants";
+import { Provider } from "./provider";
 
 export const metadata: Metadata = {
   title,
@@ -17,7 +18,7 @@ export default function RootLayout({
     <html lang="en" className={fonts.rubik.variable}>
       <body>
         <main className="flex h-screen flex-col justify-start overflow-clip">
-          {children}
+          <Provider>{children}</Provider>
         </main>
       </body>
     </html>

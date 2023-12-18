@@ -1,10 +1,20 @@
-import { Content, ContentKind } from "../hooks/contents";
+import { ContentKind, useContents } from "../hooks/contents";
 import { FileIcon } from "../icons/file";
 import { FolderIcon } from "../icons/folder";
 import { StorageLink } from "./storage-link";
 import { Storage } from "../hooks/storage";
 
-export function Contents(props: { items: Content[]; storage: Storage }) {
+export function Contents(props: { storage: Storage }) {
+  let { query: contents } = useContents(props.storage);
+
+  if (contents.isPending) {
+    return <span>Loading...</span>;
+  }
+
+  if (contents.isError) {
+    return <span>Error: {contents.error.message}</span>;
+  }
+
   return (
     <div className="overflow-auto h-full">
       <table className="table">
@@ -15,7 +25,7 @@ export function Contents(props: { items: Content[]; storage: Storage }) {
           </tr>
         </thead>
         <tbody>
-          {props.items.map((item) => {
+          {contents.data.items.map((item) => {
             const isFile = item.kind === ContentKind.File;
 
             let Icon = isFile ? FileIcon : FolderIcon;

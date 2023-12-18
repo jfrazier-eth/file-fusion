@@ -141,6 +141,12 @@ export const NewStorageModal = ({ isOpen, close, save }: Props) => {
     kind: StorageKind.Local,
   });
 
+  useEffect(() => {
+    if (isOpen && initialInputRef.current) {
+      initialInputRef.current.focus();
+    }
+  }, [initialInputRef, isOpen]);
+
   const handleSave = () => {
     let message: CreateStorageMessage;
     switch (kind) {

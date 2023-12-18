@@ -3,26 +3,20 @@ import { useCallback, useState } from "react";
 import { Header } from "./components/header";
 import { FolderIcon } from "./icons/folder";
 import { Locations } from "./components/locations";
-import { isOk } from "./hooks/async-hook";
-import { useContents } from "./hooks/contents";
 import { Contents } from "./components/contents";
 import { useElementSize } from "./hooks/element-size";
-import { useStorage, useStorages } from "./hooks/storage";
+import { useStorage } from "./hooks/storage";
 import { useParams } from "./hooks/params";
 import { useKeyBindings } from "./hooks/key-bindings";
 import { NewFolderModal } from "./components/new-folder-modal";
 import { NewStorageModal } from "./components/new-storage-modal";
 import { Messages } from "./lib/messages";
-import { useMessages } from "./hooks/messages";
 
 export default function Home() {
   let [isOpen, setIsOpen] = useState(false);
   let [isNewStorageModalOpen, setIsNewStorageModalOpen] = useState(false);
   const params = useParams();
-  const storage = useStorage(params);
-  const messages = useMessages();
-
-  const storages = useStorages();
+  const { query: storage, mutation: storageMutation } = useStorage(params);
 
   const toggleNewFolderModal = useCallback(
     () => setIsOpen((prev) => !prev),
@@ -39,14 +33,21 @@ export default function Home() {
     toggleNewStorageModal,
   });
 
-  const contents = useContents(storage);
   const [container, { height: containerHeight }] = useElementSize();
   const [header, { height: headerHeight }] = useElementSize();
+
+  if (storage.isPending) {
+    return <span>Loading...</span>;
+  }
+
+  if (storage.isError) {
+    return <span>Error: {storage.error.message}</span>;
+  }
 
   return (
     <div className="h-screen w-screen flex flex-col" ref={container}>
       <div ref={header}>
-        <Header storage={storage}>
+        <Header storage={storage.data}>
           <button
             className="btn btn-outline btn-sm btn-primary"
             onClick={() => {
@@ -66,16 +67,9 @@ export default function Home() {
           containerHeight - headerHeight
         }px] overflow-clip`}
       >
-        <Locations
-          storage={storages}
-          onNewClick={() => setIsNewStorageModalOpen(true)}
-        />
+        <Locations onNewClick={() => setIsNewStorageModalOpen(true)} />
         <div className="p-2 text-sm h-full max-h-full grow overflow-clip">
-          {isOk(contents) && isOk(storage) ? (
-            <Contents items={contents.data.items} storage={storage.data} />
-          ) : (
-            "Loading..."
-          )}
+          <Contents storage={storage.data} />
         </div>
       </div>
 
@@ -93,7 +87,7 @@ export default function Home() {
           const message: Messages = {
             CreateStorage: value,
           };
-          messages.update(message);
+          storageMutation.mutate(message);
         }}
       />
     </div>

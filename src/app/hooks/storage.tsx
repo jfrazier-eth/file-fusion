@@ -1,6 +1,6 @@
-import { useAsyncHookState } from "./async-hook";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { invoke } from "@tauri-apps/api/tauri";
-import { useCallback } from "react";
+import { Messages } from "../lib/messages";
 
 export enum StorageKind {
   Local = "Local",
@@ -40,29 +40,44 @@ export type StorageConnection =
 
 export type UseStorageResponse = Storage;
 
-const getLoad = (params: { id: number | null; path: string | null }) => {
-  return invoke<UseStorageResponse>("storage", {
-    id: params.id,
-    path: params.path,
-  });
-};
-
 export const useStorage = (params: {
   id: number | null;
   path: string | null;
 }) => {
-  const load = useCallback(() => getLoad(params), [params]);
-  const { value: storage } = useAsyncHookState<UseStorageResponse>(load);
+  const queryClient = useQueryClient();
 
-  return storage;
+  const query = useQuery({
+    queryKey: ["storage"],
+    queryFn: () =>
+      invoke<UseStorageResponse>("storage", {
+        id: params.id,
+        path: params.path,
+      }),
+  });
+
+  const mutation = useMutation({
+    mutationFn: (message: Messages) => {
+      return invoke("update", {
+        message,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["storages"] });
+    },
+  });
+
+  return {
+    query,
+    mutation,
+  };
 };
 
 export type UseStoragesResponse = Storage[];
-
-const loadStorages = () => invoke<UseStoragesResponse>("storages");
 export const useStorages = () => {
-  const { value: storages } =
-    useAsyncHookState<UseStoragesResponse>(loadStorages);
+  const query = useQuery({
+    queryKey: ["storages"],
+    queryFn: () => invoke<UseStoragesResponse>("storages"),
+  });
 
-  return storages;
+  return { query };
 };

@@ -1,37 +1,34 @@
-import { AsyncHook, isErr, isOk } from "../hooks/async-hook";
-import { Storage, UseStoragesResponse } from "../hooks/storage";
+import { useStorages } from "../hooks/storage";
 import { HardDriveIcon } from "../icons/hard-drive";
 import { StorageLink } from "./storage-link";
 
 interface Props {
   onNewClick: () => void;
-  storage: AsyncHook<UseStoragesResponse, string>;
 }
 
 export function Locations(props: Props) {
+  const { query: storages } = useStorages();
+  if (storages.isPending) {
+    return <span>Loading...</span>;
+  }
+
+  if (storages.isError) {
+    return <span>Error: {storages.error.message}</span>;
+  }
+
   return (
     <div className="flex flex-col h-full bg-base w-32 justify-between border-r border-primary">
       <ul className="menu [&_li>*]:rounded-none p-0">
-        {isOk(props.storage) ? (
-          props.storage.data.map((item) => {
-            return (
-              <li
-                key={item.id}
-                className="hover:bg-neutral border-b border-b-neutral"
-              >
-                <StorageLink storage={item}>{item.name}</StorageLink>
-              </li>
-            );
-          })
-        ) : isErr(props.storage) ? (
-          <li className="hover:bg-neutral border-b border-b-neutral">
-            {props.storage.error}
-          </li>
-        ) : (
-          <li className="hover:bg-neutral border-b border-b-neutral">
-            Loading...
-          </li>
-        )}
+        {storages.data.map((item) => {
+          return (
+            <li
+              key={item.id}
+              className="hover:bg-neutral border-b border-b-neutral"
+            >
+              <StorageLink storage={item}>{item.name}</StorageLink>
+            </li>
+          );
+        })}
       </ul>
 
       <div>
