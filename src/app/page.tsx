@@ -47,7 +47,7 @@ export default function Home() {
   return (
     <div className="h-screen w-screen flex flex-col" ref={container}>
       <div ref={header}>
-        <Header storage={storage.data}>
+        <Header metadata={storage.data}>
           <button
             className="btn btn-outline btn-sm btn-primary"
             onClick={() => {
@@ -68,11 +68,11 @@ export default function Home() {
         }px] overflow-clip`}
       >
         <Locations
-          storage={storage.data}
+          metadata={storage.data}
           onNewClick={() => setIsNewStorageModalOpen(true)}
         />
         <div className="p-2 text-sm h-full max-h-full grow overflow-clip">
-          <Contents storage={storage.data} />
+          <Contents metadata={storage.data} />
         </div>
       </div>
 
@@ -88,7 +88,7 @@ export default function Home() {
         close={() => setIsNewStorageModalOpen(false)}
         save={(value) => {
           const message: Messages = {
-            CreateStorage: value,
+            CreateObjectStore: value,
           };
           storageMutation.mutate(message);
         }}

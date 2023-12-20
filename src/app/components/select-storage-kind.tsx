@@ -1,14 +1,13 @@
 import { useEffect, useState } from "react";
-import { StorageKind } from "../hooks/storage";
+import { ObjectStoreKind } from "../lib/messages";
 
 const labels = {
-  [StorageKind.Local]: "Local",
-  [StorageKind.ObjectStore]: "Object Store",
-  [StorageKind.Arweave]: "Arweave",
+  [ObjectStoreKind.Local]: "Local",
+  [ObjectStoreKind.Remote]: "Remote",
 } as const;
 
-const getStorageKindOptions = (selected: StorageKind) => {
-  return Object.values(StorageKind).map((kind) => {
+const getStorageKindOptions = (selected: ObjectStoreKind) => {
+  return Object.values(ObjectStoreKind).map((kind) => {
     return {
       kind,
       label: labels[kind],
@@ -21,8 +20,8 @@ export const SelectStorageKind = ({
   selected,
   setSelected,
 }: {
-  selected: StorageKind;
-  setSelected: (item: StorageKind) => void;
+  selected: ObjectStoreKind;
+  setSelected: (item: ObjectStoreKind) => void;
 }) => {
   const [storageKinds, setStorageKinds] = useState(
     getStorageKindOptions(selected),
@@ -39,7 +38,6 @@ export const SelectStorageKind = ({
           <label className="label cursor-pointer" key={kind}>
             <span className="label-text mr-2">{label}</span>
             <input
-              disabled={kind === StorageKind.Arweave}
               type="checkbox"
               checked={checked}
               className="checkbox checkbox-primary checkbox-sm"

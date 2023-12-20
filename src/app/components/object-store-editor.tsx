@@ -1,10 +1,10 @@
 import { Dispatch, ForwardedRef, SetStateAction, forwardRef } from "react";
-import { ObjectStoreConnection, Storage } from "../hooks/storage";
 import { TextInput } from "./text-input";
+import { Metadata, RemoteConnection } from "../lib/messages";
 
 export type ObjectStoreEditorState = {
-  storage: Omit<Storage, "id"> & { id: number | null };
-  connection: ObjectStoreConnection;
+  storage: Omit<Metadata, "id"> & { id: number | null };
+  connection: RemoteConnection;
 };
 
 export const ObjectStoreEditor = forwardRef(
@@ -38,9 +38,9 @@ export const ObjectStoreEditor = forwardRef(
           />
 
           <TextInput
-            placeholder="Path"
-            label="Path"
-            value={state.storage.path}
+            placeholder="Prefix"
+            label="Prefix"
+            value={state.storage.prefix}
             onChange={(value) => {
               setState((prev) => ({
                 ...prev,

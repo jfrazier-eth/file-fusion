@@ -1,4 +1,4 @@
-use crate::storage::{Connection, ObjectStoreKind};
+use crate::state::store::{Connection, ObjectStoreKind};
 
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
 pub struct Metadata {

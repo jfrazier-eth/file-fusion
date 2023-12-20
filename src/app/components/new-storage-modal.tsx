@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import { StorageKind } from "../hooks/storage";
+
 import { Modal } from "./modal";
-import { CreateStorageMessage } from "../lib/messages";
+
 import { SelectStorageKind } from "./select-storage-kind";
 import {
   LocalStorageEditor,
@@ -11,32 +11,33 @@ import {
   ObjectStoreEditor,
   ObjectStoreEditorState,
 } from "./object-store-editor";
+import { CreateObjectStoreMessage, ObjectStoreKind } from "../lib/messages";
 
 interface Props {
   isOpen: boolean;
   close: () => void;
-  save: (data: CreateStorageMessage) => void;
+  save: (data: CreateObjectStoreMessage) => void;
 }
 
 export const NewStorageModal = ({ isOpen, close, save }: Props) => {
   const buttonRef = useRef<HTMLButtonElement>(null);
   const initialInputRef = useRef<HTMLInputElement>(null);
 
-  const [kind, setKind] = useState<StorageKind>(StorageKind.Local);
+  const [kind, setKind] = useState<ObjectStoreKind>(ObjectStoreKind.Local);
 
   const [localStorage, setLocalStorage] = useState<LocalStorageEditorState>({
     id: null,
-    path: null,
+    prefix: null,
     name: "",
-    kind: StorageKind.Local,
+    kind: ObjectStoreKind.Local,
   });
 
   const [objectStore, setObjectStore] = useState<ObjectStoreEditorState>({
     storage: {
       id: null,
       name: "",
-      path: "",
-      kind: StorageKind.ObjectStore,
+      prefix: "",
+      kind: ObjectStoreKind.Remote,
     },
     connection: {
       region: "",
@@ -54,14 +55,14 @@ export const NewStorageModal = ({ isOpen, close, save }: Props) => {
   }, [initialInputRef, isOpen, kind]);
 
   const handleSave = () => {
-    let message: CreateStorageMessage;
+    let message: CreateObjectStoreMessage;
     switch (kind) {
-      case StorageKind.Local: {
+      case ObjectStoreKind.Local: {
         message = {
-          storage: {
-            kind: StorageKind.Local,
+          metadata: {
+            kind: ObjectStoreKind.Local,
             name: localStorage.name,
-            path: localStorage.path || "",
+            prefix: localStorage.prefix || "",
           },
           connection: {
             Local: {},
@@ -69,15 +70,15 @@ export const NewStorageModal = ({ isOpen, close, save }: Props) => {
         };
         break;
       }
-      case StorageKind.ObjectStore: {
+      case ObjectStoreKind.Remote: {
         message = {
-          storage: {
-            kind: StorageKind.ObjectStore,
+          metadata: {
+            kind: ObjectStoreKind.Remote,
             name: objectStore.storage.name,
-            path: objectStore.storage.path || "",
+            prefix: objectStore.storage.prefix || "",
           },
           connection: {
-            ObjectStore: {
+            Remote: {
               ...objectStore.connection,
             },
           },
@@ -101,25 +102,22 @@ export const NewStorageModal = ({ isOpen, close, save }: Props) => {
         </div>
 
         <div className="grow flex flex-col mb-4">
-          {kind === StorageKind.Local ? (
+          {kind === ObjectStoreKind.Local ? (
             <LocalStorageEditor
               storage={localStorage}
               setStorage={setLocalStorage}
               ref={initialInputRef}
             />
-          ) : kind === StorageKind.ObjectStore ? (
+          ) : (
             <ObjectStoreEditor
               state={objectStore}
               setState={setObjectStore}
               ref={initialInputRef}
             />
-          ) : (
-            <div></div>
           )}
         </div>
 
         <button
-          disabled={kind === StorageKind.Arweave}
           className="btn btn-secondary btn-sm rounded-sm"
           ref={buttonRef}
           onClick={(e) => {

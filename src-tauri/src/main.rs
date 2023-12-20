@@ -11,8 +11,8 @@ use app::{
     errors::Error,
     events,
     messages::Messages,
-    state::{App, Config},
-    storage::{get_home_dir, Metadata},
+    state::{store::Metadata, App, Config},
+    storage::get_home_dir,
 };
 use tauri::Manager;
 
@@ -25,12 +25,12 @@ fn home_dir() -> Result<String, Error> {
 fn contents<'a>(
     state: tauri::State<'a, Mutex<App>>,
     id: usize,
-    path: String,
+    prefix: String,
 ) -> Result<Contents, Error> {
     let state = state.lock().map_err(|_| Error::FailedToGetStateLock)?;
     let storage = state.get_metadata(id)?.ok_or(Error::NotFound)?;
 
-    storage.with_prefix(path);
+    storage.with_prefix(prefix);
     get_contents(storage)
 }
 
@@ -61,7 +61,7 @@ fn storages<'a>(state: tauri::State<'a, Mutex<App>>) -> Result<Vec<Metadata>, Er
 async fn storage<'a>(
     state: tauri::State<'a, Mutex<App>>,
     id: Option<usize>,
-    path: Option<String>,
+    prefix: Option<String>,
 ) -> Result<Metadata, Error> {
     let manager = state.lock().map_err(|_| Error::FailedToGetStateLock)?;
 
@@ -85,10 +85,12 @@ async fn storage<'a>(
 
     let storage = match storage {
         Some(storage) => storage,
-        None => return Err(Error::NotFound),
+        None => {
+            return Err(Error::NotFound);
+        }
     };
 
-    match path {
+    match prefix {
         Some(path) => Ok(storage.with_prefix(path)),
         None => Ok(storage),
     }
@@ -97,7 +99,7 @@ async fn storage<'a>(
 fn main() {
     let base = get_home_dir().unwrap();
     let base = PathBuf::try_from(base).unwrap();
-    let events_file = base.join(Path::new(".config/filrs/events.json"));
+    let events_file = base.join(Path::new(".config/filrs/events"));
     let config = Config { events_file };
     let mut state = App::new(config);
     println!("Syncing from persistent storage");

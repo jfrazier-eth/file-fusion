@@ -1,6 +1,6 @@
 use std::{fs, path::Path};
 
-use crate::{errors::Error, storage::Metadata};
+use crate::{errors::Error, state::store::Metadata};
 
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone, Copy)]
 enum ContentKind {
@@ -10,20 +10,20 @@ enum ContentKind {
 
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
 struct Content {
-    pub path: String,
+    pub prefix: String,
     pub kind: ContentKind,
 }
 
 impl Content {
-    pub fn new(path: String, is_dir: bool) -> Self {
+    pub fn new(prefix: String, is_dir: bool) -> Self {
         if is_dir {
             return Self {
-                path,
+                prefix,
                 kind: ContentKind::Directory,
             };
         }
         Self {
-            path,
+            prefix,
             kind: ContentKind::File,
         }
     }
@@ -31,7 +31,7 @@ impl Content {
 
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
 pub struct Contents {
-    path: String,
+    prefix: String,
     items: Vec<Content>,
 }
 
@@ -60,6 +60,6 @@ pub fn get_contents(metadata: Metadata) -> Result<Contents, Error> {
 
     Ok(Contents {
         items,
-        path: metadata.prefix,
+        prefix: metadata.prefix,
     })
 }

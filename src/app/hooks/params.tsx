@@ -5,16 +5,16 @@ export const useParams = () => {
   const query = useSearchParams();
   const [params, setParams] = useState<{
     id: number | null;
-    path: string | null;
-  }>({ id: null, path: null });
+    prefix: string | null;
+  }>({ id: null, prefix: null });
 
   useEffect(() => {
     const id = query.get("id");
-    const path = query.get("path");
+    const prefix = query.get("prefix");
 
     setParams({
       id: id ? parseInt(id, 10) : null,
-      path,
+      prefix,
     });
   }, [query]);
 

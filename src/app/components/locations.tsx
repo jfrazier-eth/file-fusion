@@ -1,10 +1,11 @@
-import { Storage, useStorages } from "../hooks/storage";
+import { useStorages } from "../hooks/storage";
 import { HardDriveIcon } from "../icons/hard-drive";
+import { Metadata } from "../lib/messages";
 import { StorageLink } from "./storage-link";
 
 interface Props {
   onNewClick: () => void;
-  storage: Storage;
+  metadata: Metadata;
 }
 
 export function Locations(props: Props) {
@@ -25,10 +26,10 @@ export function Locations(props: Props) {
             <li
               key={item.id}
               className={`${
-                item.id === props.storage.id ? "text-primary" : ""
+                item.id === props.metadata.id ? "text-primary" : ""
               } hover:bg-neutral border-b border-b-neutral`}
             >
-              <StorageLink storage={item}>{item.name}</StorageLink>
+              <StorageLink metadata={item}>{item.name}</StorageLink>
             </li>
           );
         })}

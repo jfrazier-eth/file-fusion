@@ -1,7 +1,7 @@
 "use client";
 import { invoke } from "@tauri-apps/api/tauri";
-import { Storage } from "./storage";
 import { useQuery } from "@tanstack/react-query";
+import { Metadata } from "../lib/messages";
 
 export enum ContentKind {
   Directory = "Directory",
@@ -9,7 +9,7 @@ export enum ContentKind {
 }
 
 export interface Content {
-  path: string;
+  prefix: string;
   kind: ContentKind;
 }
 
@@ -18,16 +18,16 @@ interface UseContentResponse {
   items: Content[];
 }
 
-export const useContents = (storage: Storage) => {
+export const useContents = (storage: Metadata) => {
   const query = useQuery({
     queryKey: [
       "storage:contents",
-      `storage:contents:${storage.id}:path:${storage.path}`,
+      `storage:contents:${storage.id}:prefix:${storage.prefix}`,
     ],
     queryFn: () =>
       invoke<UseContentResponse>("contents", {
         id: storage.id,
-        path: storage.path,
+        prefix: storage.prefix,
       }),
   });
 

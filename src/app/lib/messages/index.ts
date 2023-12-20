@@ -1,10 +1,38 @@
-import { Storage, StorageConnection } from "@/app/hooks/storage";
+export enum ObjectStoreKind {
+  Local = "Local",
+  Remote = "Remote",
+}
 
-export interface CreateStorageMessage {
-  storage: Omit<Storage, "id">;
-  connection: StorageConnection;
+export interface Metadata {
+  id: string;
+  name: string;
+  prefix: string;
+  kind: ObjectStoreKind;
+}
+
+export interface LocalConnection {}
+
+export interface RemoteConnection {
+  region: string;
+  bucket: string;
+  access_key: string;
+  access_key_secret: string;
+  endpoint: string;
+}
+
+export type Connection =
+  | {
+      Local: LocalConnection;
+    }
+  | {
+      Remote: RemoteConnection;
+    };
+
+export interface CreateObjectStoreMessage {
+  metadata: Omit<Metadata, "id">;
+  connection: Connection;
 }
 
 export type Messages = {
-  CreateStorage: CreateStorageMessage;
+  CreateObjectStore: CreateObjectStoreMessage;
 };

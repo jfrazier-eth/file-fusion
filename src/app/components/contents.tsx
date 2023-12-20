@@ -1,11 +1,11 @@
 import { ContentKind, useContents } from "../hooks/contents";
 import { FileIcon } from "../icons/file";
 import { FolderIcon } from "../icons/folder";
+import { Metadata } from "../lib/messages";
 import { StorageLink } from "./storage-link";
-import { Storage } from "../hooks/storage";
 
-export function Contents(props: { storage: Storage }) {
-  let { query: contents } = useContents(props.storage);
+export function Contents(props: { metadata: Metadata }) {
+  let { query: contents } = useContents(props.metadata);
 
   if (contents.isPending) {
     return <span>Loading...</span>;
@@ -29,15 +29,15 @@ export function Contents(props: { storage: Storage }) {
             const isFile = item.kind === ContentKind.File;
 
             let Icon = isFile ? FileIcon : FolderIcon;
-            const name = item.path.split("/").pop() || "";
-            const itemStorage: Storage = {
-              ...props.storage,
+            const name = item.prefix.split("/").pop() || "";
+            const metadata: Metadata = {
+              ...props.metadata,
               name,
-              path: item.path,
+              prefix: item.prefix,
             };
             return (
               <tr
-                key={item.path}
+                key={item.prefix}
                 className={`${
                   isFile ? "hover:bg-neutral text-primary" : "hover:bg-neutral"
                 }`}
@@ -46,7 +46,7 @@ export function Contents(props: { storage: Storage }) {
                   {isFile ? (
                     <FileIcon />
                   ) : (
-                    <StorageLink storage={itemStorage}>
+                    <StorageLink metadata={metadata}>
                       <Icon />
                     </StorageLink>
                   )}
@@ -55,7 +55,7 @@ export function Contents(props: { storage: Storage }) {
                   {isFile ? (
                     <p className="ml-2">{name}</p>
                   ) : (
-                    <StorageLink storage={itemStorage} key={item.path}>
+                    <StorageLink metadata={metadata} key={item.prefix}>
                       <p className={"ml-2"}>{name}</p>
                     </StorageLink>
                   )}

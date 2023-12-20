@@ -1,11 +1,11 @@
 import Link from "next/link";
 import { title } from "../constants";
-import { Storage } from "../hooks/storage";
 import { Breadcrumbs } from "./breadcrumbs";
+import { Metadata } from "../lib/messages";
 
 export const Header = (props: {
   children: React.ReactNode;
-  storage: Storage;
+  metadata: Metadata;
 }) => {
   return (
     <div className="w-full flex flex-col">
@@ -17,7 +17,7 @@ export const Header = (props: {
             </Link>
           </div>
           <h3 className="text-md font-semibold text-left ml-4">
-            <Breadcrumbs storage={props.storage} />
+            <Breadcrumbs storage={props.metadata} />
           </h3>
         </div>
         {props.children}

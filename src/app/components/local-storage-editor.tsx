@@ -6,11 +6,12 @@ import {
   useEffect,
 } from "react";
 import { useHomeDir } from "../hooks/home-dir";
-import { Storage } from "../hooks/storage";
-import { TextInput } from "./text-input";
 
-export type LocalStorageEditorState = Omit<Storage, "path" | "id"> & {
-  path: string | null;
+import { TextInput } from "./text-input";
+import { Metadata } from "../lib/messages";
+
+export type LocalStorageEditorState = Omit<Metadata, "prefix" | "id"> & {
+  prefix: string | null;
   id: number | null;
 };
 
@@ -28,7 +29,7 @@ export const LocalStorageEditor = forwardRef(
     const { query: homeDir } = useHomeDir();
 
     useEffect(() => {
-      if (storage.path === null && homeDir.isSuccess) {
+      if (storage.prefix === null && homeDir.isSuccess) {
         setStorage((prev) => ({
           ...prev,
           path: homeDir.data,
@@ -52,9 +53,9 @@ export const LocalStorageEditor = forwardRef(
         />
 
         <TextInput
-          placeholder="Path"
-          label="Path"
-          value={storage.path || ""}
+          placeholder="Prefix"
+          label="Prefix"
+          value={storage.prefix || ""}
           onChange={(value) => {
             setStorage((prev) => ({
               ...prev,

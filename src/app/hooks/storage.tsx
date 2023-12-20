@@ -1,57 +1,21 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { invoke } from "@tauri-apps/api/tauri";
-import { Messages } from "../lib/messages";
+import { Messages, Metadata } from "../lib/messages";
 
-export enum StorageKind {
-  Local = "Local",
-  ObjectStore = "ObjectStore",
-  Arweave = "Arweave",
-}
-
-export interface Storage {
-  id: number;
-  name: string;
-  path: string;
-  kind: StorageKind;
-}
-
-export interface LocalConnection {}
-
-export interface ObjectStoreConnection {
-  region: string;
-  bucket: string;
-  access_key: string;
-  access_key_secret: string;
-  endpoint: string;
-}
-
-export interface ArweaveConnection {}
-
-export type StorageConnection =
-  | {
-      Local: LocalConnection;
-    }
-  | {
-      ObjectStore: ObjectStoreConnection;
-    }
-  | {
-      Arweave: ArweaveConnection;
-    };
-
-export type UseStorageResponse = Storage;
+export type UseStorageResponse = Metadata;
 
 export const useStorage = (params: {
   id: number | null;
-  path: string | null;
+  prefix: string | null;
 }) => {
   const queryClient = useQueryClient();
 
   const query = useQuery({
-    queryKey: ["storage", `storage:${params.id}:${params.path}`],
+    queryKey: ["storage", `storage:${params.id}:${params.prefix}`],
     queryFn: () =>
       invoke<UseStorageResponse>("storage", {
         id: params.id,
-        path: params.path,
+        prefix: params.prefix,
       }),
   });
 
@@ -72,7 +36,7 @@ export const useStorage = (params: {
   };
 };
 
-export type UseStoragesResponse = Storage[];
+export type UseStoragesResponse = Metadata[];
 export const useStorages = () => {
   const query = useQuery({
     queryKey: ["storages"],

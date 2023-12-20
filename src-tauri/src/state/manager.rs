@@ -1,43 +1,18 @@
-use object_store::{local::LocalFileSystem, ObjectStore as ObjectStoreClient};
-
 use crate::{
     errors::Error,
-    events::Events,
-    storage::{Connection, Metadata, ObjectStoreKind},
+    events::{store, Events},
+    storage::get_home_dir,
 };
 
 use std::{
     collections::HashMap,
-    fs::{create_dir_all, File, OpenOptions},
+    fs::{create_dir_all, OpenOptions},
     io::{prelude::*, BufReader},
     path::PathBuf,
     sync::{Arc, Mutex},
 };
 
-#[derive(Debug, Clone)]
-pub struct ObjectStore {
-    metadata: Metadata,
-    connection: Connection,
-    client: Arc<dyn ObjectStoreClient>,
-}
-
-impl ObjectStore {
-    pub fn new(metadata: Metadata, connection: Connection) -> Result<Self, Error> {
-        let client = match metadata.kind {
-            ObjectStoreKind::Local => LocalFileSystem::new_with_prefix(&metadata.prefix)?,
-
-            ObjectStoreKind::Remote => {
-                todo!();
-            }
-        };
-
-        Ok(Self {
-            metadata,
-            connection,
-            client: Arc::new(client),
-        })
-    }
-}
+use super::store::{Connection, LocalConnection, Metadata, ObjectStore, ObjectStoreKind};
 
 #[derive(Debug, Clone)]
 pub struct State {
@@ -107,7 +82,18 @@ impl App {
 
     pub fn sync(&mut self) -> Result<(), Error> {
         let events_file = self.config.events_file.clone();
-        let events_file = File::open(events_file)?;
+
+        if let Some(dir) = events_file.parent() {
+            if !dir.exists() {
+                create_dir_all(dir)?;
+            }
+        }
+
+        let events_file = OpenOptions::new()
+            .read(true)
+            .create(true)
+            .write(true)
+            .open(events_file)?;
 
         let reader = BufReader::new(events_file);
         for line in reader.lines() {
@@ -119,6 +105,25 @@ impl App {
             }
         }
 
+        let num_stores = {
+            let state = self.state.lock().map_err(|_| Error::FailedToGetStateLock)?;
+            state.stores.len()
+        };
+
+        if num_stores == 0 {
+            let default_store_event = Events::CreateObjectStore(store::Create {
+                id: self.next_event_id(),
+                metadata: Metadata {
+                    id: self.create_store_id()?,
+                    name: String::from("Local"),
+                    prefix: get_home_dir()?,
+                    kind: ObjectStoreKind::Local,
+                },
+                connection: Connection::Local(LocalConnection {}),
+            });
+            self.save(&default_store_event)?;
+        }
+
         Ok(())
     }
 
@@ -126,11 +131,6 @@ impl App {
         self.update(event)?;
 
         let events_file = self.config.events_file.clone();
-        if let Some(dir) = events_file.parent() {
-            if !dir.exists() {
-                create_dir_all(dir)?;
-            }
-        }
 
         let mut file = OpenOptions::new()
             .write(true)

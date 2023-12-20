@@ -1,6 +1,6 @@
 use crate::{
     messages,
-    storage::{Connection, Metadata},
+    state::store::{Connection, Metadata},
 };
 
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]

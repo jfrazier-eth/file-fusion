@@ -1,9 +1,9 @@
+import { Metadata } from "../lib/messages";
 import { StorageLink } from "./storage-link";
-import { Storage } from "../hooks/storage";
 
-export const Breadcrumbs = (props: { storage: Storage }) => {
+export const Breadcrumbs = (props: { storage: Metadata }) => {
   const storage = props.storage;
-  const parts = storage.path.split("/").filter((item) => !!item);
+  const parts = storage.prefix.split("/").filter((item) => !!item);
   parts.unshift("");
   const crumbs = parts.map((name, index) => {
     name = name.length === 0 ? "/" : name;
@@ -22,7 +22,7 @@ export const Breadcrumbs = (props: { storage: Storage }) => {
         {crumbs.map((crumb) => {
           return (
             <li key={crumb.path} className="before:text-accent">
-              <StorageLink storage={crumb}>{crumb.name}</StorageLink>
+              <StorageLink metadata={crumb}>{crumb.name}</StorageLink>
             </li>
           );
         })}
