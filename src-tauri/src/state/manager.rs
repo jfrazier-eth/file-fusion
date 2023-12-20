@@ -58,11 +58,15 @@ impl App {
         Ok(stores)
     }
 
-    pub fn get_metadata(&self, id: usize) -> Result<Option<Metadata>, Error> {
+    pub fn get_store(&self, id: usize) -> Result<Option<ObjectStore>, Error> {
         let state = self.state.lock().map_err(|_| Error::FailedToGetStateLock)?;
-        let metadata = state.stores.get(&id).map(|store| store.metadata.clone());
+        let store = state.stores.get(&id).map(|store| store.clone());
+        Ok(store)
+    }
 
-        Ok(metadata)
+    pub fn get_metadata(&self, id: usize) -> Result<Option<Metadata>, Error> {
+        self.get_store(id)
+            .map(|store| store.map(|store| store.metadata))
     }
 
     pub fn next_event_id(&self) -> usize {

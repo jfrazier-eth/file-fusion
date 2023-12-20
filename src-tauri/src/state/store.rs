@@ -55,8 +55,7 @@ pub struct ObjectStore {
 impl ObjectStore {
     pub fn new(metadata: Metadata, connection: Connection) -> Result<Self, Error> {
         let client = match metadata.kind {
-            ObjectStoreKind::Local => LocalFileSystem::new_with_prefix(&metadata.prefix)?,
-
+            ObjectStoreKind::Local => LocalFileSystem::new(),
             ObjectStoreKind::Remote => {
                 todo!();
             }

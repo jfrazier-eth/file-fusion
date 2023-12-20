@@ -1,15 +1,11 @@
-use std::{fs, path::Path};
-
-use crate::{errors::Error, state::store::Metadata};
-
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone, Copy)]
-enum ContentKind {
+pub enum ContentKind {
     Directory,
     File,
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
-struct Content {
+pub struct Content {
     pub prefix: String,
     pub kind: ContentKind,
 }
@@ -31,35 +27,6 @@ impl Content {
 
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
 pub struct Contents {
-    prefix: String,
-    items: Vec<Content>,
-}
-
-pub fn get_contents(metadata: Metadata) -> Result<Contents, Error> {
-    let dir_path = Path::new(&metadata.prefix);
-
-    if !dir_path.is_dir() {
-        return Err(Error::CannotListContentsOfAFile);
-    }
-    let dir = fs::read_dir(dir_path)?;
-
-    let mut items = Vec::new();
-
-    for entry in dir {
-        let entry = entry?;
-        let path = entry.path();
-        let is_dir = path.is_dir();
-        let path = path.as_os_str().to_str().ok_or(Error::ParsePath)?;
-        let path = String::from(path);
-
-        println!("Path {} Is Dir {}", path, is_dir);
-
-        let item = Content::new(path, is_dir);
-        items.push(item);
-    }
-
-    Ok(Contents {
-        items,
-        prefix: metadata.prefix,
-    })
+    pub prefix: String,
+    pub items: Vec<Content>,
 }

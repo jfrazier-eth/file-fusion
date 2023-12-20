@@ -26,17 +26,6 @@ export const LocalStorageEditor = forwardRef(
     },
     ref: ForwardedRef<HTMLInputElement>,
   ) => {
-    const { query: homeDir } = useHomeDir();
-
-    useEffect(() => {
-      if (storage.prefix === null && homeDir.isSuccess) {
-        setStorage((prev) => ({
-          ...prev,
-          path: homeDir.data,
-        }));
-      }
-    }, [storage, homeDir, setStorage]);
-
     return (
       <div className="flex flex-col w-full">
         <TextInput

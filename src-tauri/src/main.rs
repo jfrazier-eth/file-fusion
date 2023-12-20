@@ -1,19 +1,21 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use std::{
-    path::{Path, PathBuf},
-    sync::Mutex,
-};
-
 use app::{
-    content::{get_contents, Contents},
+    content::{Content, Contents},
     errors::Error,
     events,
     messages::Messages,
     state::{store::Metadata, App, Config},
     storage::get_home_dir,
 };
+use futures::lock::Mutex;
+use std::{
+    path::{Path as StdPath, PathBuf},
+    sync::Arc,
+};
+
+use object_store::path::Path;
 use tauri::Manager;
 
 #[tauri::command]
@@ -22,59 +24,103 @@ fn home_dir() -> Result<String, Error> {
 }
 
 #[tauri::command]
-fn contents<'a>(
-    state: tauri::State<'a, Mutex<App>>,
+async fn contents(
+    app: tauri::State<'_, Arc<Mutex<App>>>,
     id: usize,
     prefix: String,
 ) -> Result<Contents, Error> {
-    let state = state.lock().map_err(|_| Error::FailedToGetStateLock)?;
-    let storage = state.get_metadata(id)?.ok_or(Error::NotFound)?;
+    let app = app.lock().await;
+    let store = app.get_store(id)?;
 
-    storage.with_prefix(prefix);
-    get_contents(storage)
+    let store = match store {
+        None => return Err(Error::NotFound),
+        Some(store) => store,
+    };
+
+    let prefix = {
+        if prefix.len() == 0 {
+            store.metadata.prefix
+        } else {
+            prefix
+        }
+    };
+    let path = Path::parse(&prefix)?;
+
+    let list = store.client.list_with_delimiter(Some(&path)).await;
+    let list = match list {
+        Ok(list) => list,
+        Err(e) => {
+            eprintln!("{}", e);
+            return Err(Error::ObjectStore(e));
+        }
+    };
+
+    let files: Vec<Content> = list
+        .objects
+        .iter()
+        .map(|file| Content::new(file.location.to_string(), false))
+        .collect();
+    let dirs: Vec<Content> = list
+        .common_prefixes
+        .iter()
+        .map(|dir| Content::new(dir.to_string(), true))
+        .collect();
+
+    let mut items = [files, dirs].concat();
+    items.sort_by(|a, b| a.prefix.cmp(&b.prefix));
+
+    let contents = Contents {
+        prefix: prefix.clone(),
+        items,
+    };
+
+    return Ok(contents);
 }
 
 #[tauri::command]
-fn update<'a>(state: tauri::State<'a, Mutex<App>>, message: Messages) -> Result<(), Error> {
-    let mut state = state.lock().map_err(|_| Error::FailedToGetStateLock)?;
+async fn update<'a>(
+    app: tauri::State<'_, Arc<Mutex<App>>>,
+    message: Messages,
+) -> Result<(), Error> {
+    let mut app = app.lock().await;
 
-    let event_id = state.next_event_id();
+    let event_id = app.next_event_id();
     let event: events::Events = match message {
         Messages::CreateObjectStore(message) => {
-            let store_id = state.create_store_id()?;
+            let store_id = app.create_store_id()?;
             let event = events::Events::CreateObjectStore(events::store::Create::from_msg(
                 event_id, store_id, message,
             ));
             event
         }
     };
-    state.save(&event)
+    app.save(&event)
 }
 
 #[tauri::command]
-fn storages<'a>(state: tauri::State<'a, Mutex<App>>) -> Result<Vec<Metadata>, Error> {
-    let manager = state.lock().map_err(|_| Error::FailedToGetStateLock)?;
+async fn storages<'a>(state: tauri::State<'_, Arc<Mutex<App>>>) -> Result<Vec<Metadata>, Error> {
+    let manager = state.lock().await;
     manager.list_stores()
 }
 
 #[tauri::command]
 async fn storage<'a>(
-    state: tauri::State<'a, Mutex<App>>,
+    state: tauri::State<'_, Arc<Mutex<App>>>,
     id: Option<usize>,
     prefix: Option<String>,
 ) -> Result<Metadata, Error> {
-    let manager = state.lock().map_err(|_| Error::FailedToGetStateLock)?;
+    let app = state.lock().await;
 
     let storage = match id {
         Some(id) => {
-            let storage = manager.get_metadata(id)?;
+            let storage = app.get_metadata(id)?;
             match storage {
                 Some(storage) => Some(storage),
                 None => None,
             }
         }
         None => {
-            let storages = manager.list_stores()?;
+            let storages = app.list_stores()?;
             let storage = storages.get(0);
             match storage {
                 Some(storage) => Some(storage.clone()),
@@ -99,15 +145,15 @@ async fn storage<'a>(
 fn main() {
     let base = get_home_dir().unwrap();
     let base = PathBuf::try_from(base).unwrap();
-    let events_file = base.join(Path::new(".config/filrs/events"));
+    let events_file = base.join(StdPath::new(".config/filrs/events"));
     let config = Config { events_file };
-    let mut state = App::new(config);
+    let mut app = App::new(config);
     println!("Syncing from persistent storage");
-    state.sync().unwrap();
-    let manager = Mutex::new(state);
+    app.sync().unwrap();
+    let app = Arc::new(Mutex::new(app));
 
     tauri::Builder::default()
-        .manage(manager)
+        .manage(app)
         .invoke_handler(tauri::generate_handler![
             home_dir, contents, storage, storages, update
         ])

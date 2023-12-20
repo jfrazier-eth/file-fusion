@@ -5,14 +5,14 @@ export const Breadcrumbs = (props: { storage: Metadata }) => {
   const storage = props.storage;
   const parts = storage.prefix.split("/").filter((item) => !!item);
   parts.unshift("");
-  const crumbs = parts.map((name, index) => {
+  const crumbs: Metadata[] = parts.map((name, index) => {
     name = name.length === 0 ? "/" : name;
     let path = parts.slice(0, index + 1).join("/");
     path = path.length === 0 ? "/" : path;
     return {
       ...storage,
       name,
-      path,
+      prefix: path,
     };
   });
 
@@ -21,7 +21,7 @@ export const Breadcrumbs = (props: { storage: Metadata }) => {
       <ul>
         {crumbs.map((crumb) => {
           return (
-            <li key={crumb.path} className="before:text-accent">
+            <li key={crumb.prefix} className="before:text-accent">
               <StorageLink metadata={crumb}>{crumb.name}</StorageLink>
             </li>
           );

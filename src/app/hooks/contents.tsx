@@ -28,6 +28,9 @@ export const useContents = (storage: Metadata) => {
       invoke<UseContentResponse>("contents", {
         id: storage.id,
         prefix: storage.prefix,
+      }).catch((e) => {
+        console.error(e);
+        throw e;
       }),
   });
 

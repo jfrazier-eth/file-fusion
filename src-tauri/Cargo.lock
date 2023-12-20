@@ -67,6 +67,7 @@ name = "app"
 version = "0.1.0"
 dependencies = [
  "directories",
+ "futures",
  "object_store",
  "rand 0.8.5",
  "serde",
