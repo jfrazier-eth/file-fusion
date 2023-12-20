@@ -3,33 +3,25 @@ use directories::UserDirs;
 use crate::errors::Error;
 
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
-pub enum StorageKind {
+pub enum ObjectStoreKind {
     Local,
-    ObjectStore,
-    Arweave,
+    Remote,
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
-pub struct StorageMessage {
-    pub name: String,
-    pub path: String,
-    pub kind: StorageKind,
-}
-
-#[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
-pub struct Storage {
+pub struct Metadata {
     pub id: usize,
     pub name: String,
-    pub path: String,
-    pub kind: StorageKind,
+    pub prefix: String,
+    pub kind: ObjectStoreKind,
 }
 
-impl Storage {
-    pub fn with_path(&self, path: String) -> Self {
-        Storage {
+impl Metadata {
+    pub fn with_prefix(&self, prefix: String) -> Self {
+        Metadata {
             id: self.id,
             name: self.name.to_owned(),
-            path,
+            prefix,
             kind: self.kind.to_owned(),
         }
     }
@@ -39,7 +31,7 @@ impl Storage {
 pub struct LocalConnection {}
 
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
-pub struct ObjectStoreConnection {
+pub struct RemoteConnection {
     region: String,
     bucket: String,
     access_key: String,
@@ -48,13 +40,9 @@ pub struct ObjectStoreConnection {
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
-pub struct ArweaveConnection {}
-
-#[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
-pub enum StorageConnection {
+pub enum Connection {
     Local(LocalConnection),
-    ObjectStore(ObjectStoreConnection),
-    Arweave(ArweaveConnection),
+    Remote(RemoteConnection),
 }
 
 pub fn get_home_dir() -> Result<String, Error> {

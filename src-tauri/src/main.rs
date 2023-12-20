@@ -9,8 +9,10 @@ use std::{
 use app::{
     content::{get_contents, Contents},
     errors::Error,
-    state::{Config, CreateStorage, Events, Messages, StateManager},
-    storage::{get_home_dir, Storage},
+    events,
+    messages::Messages,
+    state::{App, Config},
+    storage::{get_home_dir, Metadata},
 };
 use tauri::Manager;
 
@@ -21,67 +23,58 @@ fn home_dir() -> Result<String, Error> {
 
 #[tauri::command]
 fn contents<'a>(
-    state: tauri::State<'a, Mutex<StateManager>>,
+    state: tauri::State<'a, Mutex<App>>,
     id: usize,
     path: String,
 ) -> Result<Contents, Error> {
     let state = state.lock().map_err(|_| Error::FailedToGetStateLock)?;
-    let storage = state.get_storage(id)?.ok_or(Error::NotFound)?;
+    let storage = state.get_metadata(id)?.ok_or(Error::NotFound)?;
 
-    storage.with_path(path);
+    storage.with_prefix(path);
     get_contents(storage)
 }
 
 #[tauri::command]
-fn update<'a>(
-    state: tauri::State<'a, Mutex<StateManager>>,
-    message: Messages,
-) -> Result<(), Error> {
+fn update<'a>(state: tauri::State<'a, Mutex<App>>, message: Messages) -> Result<(), Error> {
     let mut state = state.lock().map_err(|_| Error::FailedToGetStateLock)?;
 
     let event_id = state.next_event_id();
-    let event: Events = match message {
-        Messages::CreateStorage(message) => {
-            let storage_id = state.get_storage_id()?;
-            Events::CreateStorage(CreateStorage {
-                id: event_id,
-                storage: Storage {
-                    id: storage_id,
-                    name: message.storage.name,
-                    path: message.storage.path,
-                    kind: message.storage.kind,
-                },
-                connection: message.connection,
-            })
+    let event: events::Events = match message {
+        Messages::CreateObjectStore(message) => {
+            let store_id = state.create_store_id()?;
+            let event = events::Events::CreateObjectStore(events::store::Create::from_msg(
+                event_id, store_id, message,
+            ));
+            event
         }
     };
     state.save(&event)
 }
 
 #[tauri::command]
-fn storages<'a>(state: tauri::State<'a, Mutex<StateManager>>) -> Result<Vec<Storage>, Error> {
+fn storages<'a>(state: tauri::State<'a, Mutex<App>>) -> Result<Vec<Metadata>, Error> {
     let manager = state.lock().map_err(|_| Error::FailedToGetStateLock)?;
-    manager.list_storages()
+    manager.list_stores()
 }
 
 #[tauri::command]
 async fn storage<'a>(
-    state: tauri::State<'a, Mutex<StateManager>>,
+    state: tauri::State<'a, Mutex<App>>,
     id: Option<usize>,
     path: Option<String>,
-) -> Result<Storage, Error> {
+) -> Result<Metadata, Error> {
     let manager = state.lock().map_err(|_| Error::FailedToGetStateLock)?;
 
     let storage = match id {
         Some(id) => {
-            let storage = manager.get_storage(id)?;
+            let storage = manager.get_metadata(id)?;
             match storage {
                 Some(storage) => Some(storage),
                 None => None,
             }
         }
         None => {
-            let storages = manager.list_storages()?;
+            let storages = manager.list_stores()?;
             let storage = storages.get(0);
             match storage {
                 Some(storage) => Some(storage.clone()),
@@ -96,7 +89,7 @@ async fn storage<'a>(
     };
 
     match path {
-        Some(path) => Ok(storage.with_path(path)),
+        Some(path) => Ok(storage.with_prefix(path)),
         None => Ok(storage),
     }
 }
@@ -106,7 +99,7 @@ fn main() {
     let base = PathBuf::try_from(base).unwrap();
     let events_file = base.join(Path::new(".config/filrs/events.json"));
     let config = Config { events_file };
-    let mut state = StateManager::new(config);
+    let mut state = App::new(config);
     println!("Syncing from persistent storage");
     state.sync().unwrap();
     let manager = Mutex::new(state);

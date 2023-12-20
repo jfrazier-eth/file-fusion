@@ -1,5 +1,4 @@
-mod events;
 mod manager;
 
-pub use events::*;
+pub mod events;
 pub use manager::*;

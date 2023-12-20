@@ -1,7 +1,11 @@
+use object_store::{local::LocalFileSystem, ObjectStore as ObjectStoreClient};
+
 use crate::{
     errors::Error,
-    storage::{Storage, StorageConnection},
+    events::Events,
+    storage::{Connection, Metadata, ObjectStoreKind},
 };
+
 use std::{
     collections::HashMap,
     fs::{create_dir_all, File, OpenOptions},
@@ -10,19 +14,40 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use super::{Event, Events};
+#[derive(Debug, Clone)]
+pub struct ObjectStore {
+    metadata: Metadata,
+    connection: Connection,
+    client: Arc<dyn ObjectStoreClient>,
+}
 
-#[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
+impl ObjectStore {
+    pub fn new(metadata: Metadata, connection: Connection) -> Result<Self, Error> {
+        let client = match metadata.kind {
+            ObjectStoreKind::Local => LocalFileSystem::new_with_prefix(&metadata.prefix)?,
+
+            ObjectStoreKind::Remote => {
+                todo!();
+            }
+        };
+
+        Ok(Self {
+            metadata,
+            connection,
+            client: Arc::new(client),
+        })
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct State {
-    storage: HashMap<usize, Storage>,
-    connections: HashMap<usize, StorageConnection>,
+    stores: HashMap<usize, ObjectStore>,
 }
 
 impl State {
     pub fn new() -> Self {
         Self {
-            storage: HashMap::new(),
-            connections: HashMap::new(),
+            stores: HashMap::new(),
         }
     }
 }
@@ -31,13 +56,13 @@ pub struct Config {
     pub events_file: PathBuf,
 }
 
-pub struct StateManager {
+pub struct App {
     config: Config,
     event_id: usize,
     state: Arc<Mutex<State>>,
 }
 
-impl StateManager {
+impl App {
     pub fn new(config: Config) -> Self {
         Self {
             config,
@@ -46,31 +71,32 @@ impl StateManager {
         }
     }
 
-    pub fn list_storages(&self) -> Result<Vec<Storage>, Error> {
+    pub fn list_stores(&self) -> Result<Vec<Metadata>, Error> {
         let state = self.state.lock().map_err(|_| Error::FailedToGetStateLock)?;
 
-        let storages: Vec<Storage> = state
-            .storage
+        let stores: Vec<Metadata> = state
+            .stores
             .iter()
-            .map(|(_, storage)| storage.clone())
+            .map(|(_, item)| item.metadata.clone())
             .collect();
 
-        Ok(storages)
+        Ok(stores)
     }
 
-    pub fn get_storage(&self, id: usize) -> Result<Option<Storage>, Error> {
+    pub fn get_metadata(&self, id: usize) -> Result<Option<Metadata>, Error> {
         let state = self.state.lock().map_err(|_| Error::FailedToGetStateLock)?;
-        let storage = state.storage.get(&id).map(|storage| storage.clone());
-        Ok(storage)
+        let metadata = state.stores.get(&id).map(|store| store.metadata.clone());
+
+        Ok(metadata)
     }
 
     pub fn next_event_id(&self) -> usize {
         self.event_id + 1
     }
 
-    pub fn get_storage_id(&self) -> Result<usize, Error> {
+    pub fn create_store_id(&self) -> Result<usize, Error> {
         let state = self.state.lock().map_err(|_| Error::FailedToGetStateLock)?;
-        let max = state.storage.keys().max();
+        let max = state.stores.keys().max();
         let id = match max {
             Some(value) => value + 1,
             None => 1,
@@ -123,14 +149,14 @@ impl StateManager {
         let mut state = self.state.lock().map_err(|_| Error::FailedToGetStateLock)?;
 
         match event {
-            Events::CreateStorage(event) => {
-                let id = event.storage.id;
-                let storage = event.storage.clone();
+            Events::CreateObjectStore(event) => {
+                let id = event.id;
+                let metadata = event.metadata.clone();
                 let connection = event.connection.clone();
 
-                self.event_id = event.get_id();
-                state.storage.insert(id, storage);
-                state.connections.insert(id, connection);
+                let store = ObjectStore::new(metadata, connection)?;
+                self.event_id = event.id;
+                state.stores.insert(id, store);
             }
         }
 

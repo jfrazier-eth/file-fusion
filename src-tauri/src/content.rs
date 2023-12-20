@@ -1,6 +1,6 @@
 use std::{fs, path::Path};
 
-use crate::{errors::Error, storage::Storage};
+use crate::{errors::Error, storage::Metadata};
 
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone, Copy)]
 enum ContentKind {
@@ -35,8 +35,8 @@ pub struct Contents {
     items: Vec<Content>,
 }
 
-pub fn get_contents(storage: Storage) -> Result<Contents, Error> {
-    let dir_path = Path::new(&storage.path);
+pub fn get_contents(metadata: Metadata) -> Result<Contents, Error> {
+    let dir_path = Path::new(&metadata.prefix);
 
     if !dir_path.is_dir() {
         return Err(Error::CannotListContentsOfAFile);
@@ -60,6 +60,6 @@ pub fn get_contents(storage: Storage) -> Result<Contents, Error> {
 
     Ok(Contents {
         items,
-        path: storage.path,
+        path: metadata.prefix,
     })
 }

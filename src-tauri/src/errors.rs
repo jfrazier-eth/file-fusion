@@ -1,4 +1,6 @@
-#[derive(Debug, thiserror::Error)]
+use thiserror::Error;
+
+#[derive(Debug, Error)]
 pub enum Error {
     #[error("home dir not found")]
     HomeDirNotFound,
@@ -8,8 +10,10 @@ pub enum Error {
 
     #[error("failed to deserialize events")]
     FailedToDeserializeEvents,
+
     #[error("failed to serialize events")]
     FailedToSerializeEvents,
+
     #[error("failed to write to events file")]
     FailedToWriteToEventsFile,
 
@@ -24,6 +28,12 @@ pub enum Error {
 
     #[error(transparent)]
     Io(#[from] std::io::Error),
+
+    #[error(transparent)]
+    Path(#[from] object_store::path::Error),
+
+    #[error(transparent)]
+    ObjectStore(#[from] object_store::Error),
 }
 
 impl serde::Serialize for Error {
