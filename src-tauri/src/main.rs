@@ -46,14 +46,7 @@ async fn contents(
     };
     let path = Path::parse(&prefix)?;
 
-    let list = store.client.list_with_delimiter(Some(&path)).await;
-    let list = match list {
-        Ok(list) => list,
-        Err(e) => {
-            eprintln!("{}", e);
-            return Err(Error::ObjectStore(e));
-        }
-    };
+    let list = store.client.list_with_delimiter(Some(&path)).await?;
 
     let files: Vec<Content> = list
         .objects

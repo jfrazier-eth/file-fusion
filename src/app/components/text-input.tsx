@@ -11,7 +11,7 @@ export const TextInput = forwardRef(
   (props: TextInputProps, ref: ForwardedRef<HTMLInputElement>) => {
     return (
       <label className="form-control w-full">
-        <div className="label pb-0.5 pt-1">
+        <div className="label pb-1 pt-1">
           <span className="label-text text-xs">{props.label}</span>
         </div>
         <input

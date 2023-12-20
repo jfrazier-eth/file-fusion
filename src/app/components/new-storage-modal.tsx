@@ -96,7 +96,7 @@ export const NewStorageModal = ({ isOpen, close, save }: Props) => {
 
   return (
     <Modal isOpen={isOpen} close={close} title="New Storage Location">
-      <div className="flex flex-col min-h-[300px] justify-between">
+      <div className="flex flex-col min-h-[300px] justify-start">
         <div className="flex flex-row w-full">
           <SelectStorageKind selected={kind} setSelected={setKind} />
         </div>

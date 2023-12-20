@@ -1,11 +1,4 @@
-import {
-  Dispatch,
-  ForwardedRef,
-  SetStateAction,
-  forwardRef,
-  useEffect,
-} from "react";
-import { useHomeDir } from "../hooks/home-dir";
+import { Dispatch, ForwardedRef, SetStateAction, forwardRef } from "react";
 
 import { TextInput } from "./text-input";
 import { Metadata } from "../lib/messages";
@@ -28,30 +21,32 @@ export const LocalStorageEditor = forwardRef(
   ) => {
     return (
       <div className="flex flex-col w-full">
-        <TextInput
-          ref={ref}
-          placeholder="Name"
-          label="Name"
-          value={storage.name}
-          onChange={(value) => {
-            setStorage((prev) => ({
-              ...prev,
-              name: value,
-            }));
-          }}
-        />
+        <div className="grid grid-cols-2 gap-2 w-full pb-3">
+          <TextInput
+            ref={ref}
+            placeholder="Name"
+            label="Name"
+            value={storage.name}
+            onChange={(value) => {
+              setStorage((prev) => ({
+                ...prev,
+                name: value,
+              }));
+            }}
+          />
 
-        <TextInput
-          placeholder="Prefix"
-          label="Prefix"
-          value={storage.prefix || ""}
-          onChange={(value) => {
-            setStorage((prev) => ({
-              ...prev,
-              path: value,
-            }));
-          }}
-        />
+          <TextInput
+            placeholder="Prefix"
+            label="Prefix"
+            value={storage.prefix || ""}
+            onChange={(value) => {
+              setStorage((prev) => ({
+                ...prev,
+                path: value,
+              }));
+            }}
+          />
+        </div>
       </div>
     );
   },

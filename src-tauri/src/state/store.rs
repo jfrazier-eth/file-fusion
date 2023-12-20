@@ -1,5 +1,7 @@
 use crate::errors::Error;
-use object_store::{local::LocalFileSystem, ObjectStore as ObjectStoreClient};
+use object_store::{
+    aws::AmazonS3Builder, local::LocalFileSystem, ObjectStore as ObjectStoreClient,
+};
 use std::sync::Arc;
 
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
@@ -54,17 +56,25 @@ pub struct ObjectStore {
 
 impl ObjectStore {
     pub fn new(metadata: Metadata, connection: Connection) -> Result<Self, Error> {
-        let client = match metadata.kind {
-            ObjectStoreKind::Local => LocalFileSystem::new(),
-            ObjectStoreKind::Remote => {
-                todo!();
+        let client: Arc<dyn ObjectStoreClient> = match connection.clone() {
+            Connection::Local(_) => Arc::new(LocalFileSystem::new()),
+            Connection::Remote(connection) => {
+                let s3 = AmazonS3Builder::new()
+                    .with_bucket_name(connection.bucket)
+                    .with_region(connection.region)
+                    .with_access_key_id(connection.access_key)
+                    .with_secret_access_key(connection.access_key_secret)
+                    .with_endpoint(connection.endpoint)
+                    .build()?;
+
+                Arc::new(s3)
             }
         };
 
         Ok(Self {
             metadata,
             connection,
-            client: Arc::new(client),
+            client,
         })
     }
 }

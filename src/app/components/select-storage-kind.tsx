@@ -32,10 +32,10 @@ export const SelectStorageKind = ({
   }, [selected, setStorageKinds]);
 
   return (
-    <label className="form-control flex flex-row w-full items-center justify-between">
+    <label className="form-control flex flex-row w-full items-center justify-start">
       {storageKinds.map(({ kind, checked, label }) => {
         return (
-          <label className="label cursor-pointer" key={kind}>
+          <label className="label cursor-pointer mr-2" key={kind}>
             <span className="label-text mr-2">{label}</span>
             <input
               type="checkbox"
