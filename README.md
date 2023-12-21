@@ -1,4 +1,4 @@
-# File Fusion
+# File Fusion 🚧 Under Construction 🚧
 * A file explorer for data lakes
 
 Powered by [DataFusion](https://github.com/apache/arrow-datafusion).
