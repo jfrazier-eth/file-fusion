@@ -138,7 +138,7 @@ async fn storage<'a>(
 fn main() {
     let base = get_home_dir().unwrap();
     let base = PathBuf::try_from(base).unwrap();
-    let events_file = base.join(StdPath::new(".config/filrs/events"));
+    let events_file = base.join(StdPath::new(".config/file-fusion/events"));
     let config = Config { events_file };
     let mut app = App::new(config);
     println!("Syncing from persistent storage");

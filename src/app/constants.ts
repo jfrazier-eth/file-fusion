@@ -1,2 +1,2 @@
-export const title = "filrs";
-export const description = "a modern file explorer";
+export const title = "File Fusion";
+export const description = "A datafusion powered file explorer";

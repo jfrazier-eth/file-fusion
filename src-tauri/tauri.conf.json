@@ -6,7 +6,7 @@
     "distDir": "../out"
   },
   "package": {
-    "productName": "filrs",
+    "productName": "File Fusion",
     "version": "0.1.0"
   },
   "tauri": {
@@ -59,7 +59,7 @@
         "fullscreen": false,
         "height": 600,
         "resizable": true,
-        "title": "filrs",
+        "title": "File Fusion",
         "width": 800,
         "decorations": true,
         "focus": true
