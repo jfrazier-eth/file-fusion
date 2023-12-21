@@ -3,6 +3,7 @@ import { StorageLink } from "./storage-link";
 
 export const Breadcrumbs = (props: { storage: Metadata }) => {
   const storage = props.storage;
+
   const parts = storage.prefix.split("/").filter((item) => !!item);
   parts.unshift("");
   const crumbs: Metadata[] = parts.map((name, index) => {

@@ -18,11 +18,6 @@ const config = {
     key: "]",
     description: "Navigate to the previous page",
   },
-  newFolder: {
-    metaKey: true,
-    key: "n",
-    description: "Open the new folder modal",
-  },
   newStorage: {
     metaKey: true,
     key: "s",
@@ -35,19 +30,14 @@ const entries = <K extends string, T>(o: Record<K, T>): [K, T][] => {
 };
 
 interface Props {
-  toggleNewFolderModal: () => void;
   toggleNewStorageModal: () => void;
 }
 
-export const useKeyBindings = ({
-  toggleNewFolderModal,
-  toggleNewStorageModal,
-}: Props) => {
+export const useKeyBindings = ({ toggleNewStorageModal }: Props) => {
   const router = useRouter();
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       const items = entries<keyof typeof config, KeyBinding>(config);
-      console.log(`Key press Meta: ${event.metaKey} Key: ${event.key}`);
       for (const [name, kb] of items) {
         if (kb.metaKey === event.metaKey && kb.key === event.key) {
           switch (name) {
@@ -57,10 +47,6 @@ export const useKeyBindings = ({
             }
             case "forward": {
               router.forward();
-              break;
-            }
-            case "newFolder": {
-              toggleNewFolderModal();
               break;
             }
             case "newStorage": {
@@ -79,5 +65,5 @@ export const useKeyBindings = ({
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [router, toggleNewFolderModal, toggleNewStorageModal]);
+  }, [router, toggleNewStorageModal]);
 };

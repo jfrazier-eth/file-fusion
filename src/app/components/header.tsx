@@ -4,7 +4,7 @@ import { Breadcrumbs } from "./breadcrumbs";
 import { Metadata } from "../lib/messages";
 
 export const Header = (props: {
-  children: React.ReactNode;
+  children?: React.ReactNode;
   metadata: Metadata;
 }) => {
   return (
