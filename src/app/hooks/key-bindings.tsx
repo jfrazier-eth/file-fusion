@@ -20,7 +20,7 @@ const config = {
   },
   newStorage: {
     metaKey: true,
-    key: "s",
+    key: "n",
     description: "Open the new storage modal",
   },
 } satisfies Record<string, KeyBinding>;

@@ -1,11 +1,35 @@
-import { ContentKind, useContents } from "../hooks/contents";
+import { useEffect, useState } from "react";
+import { Content, ContentKind, useContents } from "../hooks/contents";
 import { FileIcon } from "../icons/file";
 import { FolderIcon } from "../icons/folder";
 import { Metadata } from "../lib/messages";
 import { StorageLink } from "./storage-link";
+import { BufferStateItem, getId } from "../hooks/buffer-state";
 
-export function Contents(props: { metadata: Metadata }) {
+export function Contents(props: {
+  metadata: Metadata;
+  bufferState: Record<string, BufferStateItem>;
+  onIconClick: (item: Content) => void;
+}) {
   let { query: contents } = useContents(props.metadata);
+
+  const [data, setData] = useState<(Content & { isSelected: boolean })[]>([]);
+
+  useEffect(() => {
+    if (contents.isSuccess) {
+      const transformed = contents.data.items.map((item) => {
+        const id = getId(props.metadata.id, item.prefix);
+        return {
+          ...item,
+          isSelected: !!props.bufferState[id],
+        };
+      });
+
+      setData(transformed);
+    } else {
+      setData([]);
+    }
+  }, [contents.data, contents.isSuccess, props.metadata, props.bufferState]);
 
   if (contents.isError) {
     return (
@@ -22,46 +46,60 @@ export function Contents(props: { metadata: Metadata }) {
 
   return (
     <div className="overflow-auto h-full">
-      {contents.data.items.length > 0 ? (
+      {data.length > 0 ? (
         <table className="table">
           <thead>
             <tr>
-              <th className="w-8"></th>
+              <th className="w-8">Select</th>
               <th>Name</th>
             </tr>
           </thead>
           <tbody>
-            {contents.data.items.map((item) => {
+            {data.map((item) => {
               const isFile = item.kind === ContentKind.File;
 
-              let Icon = isFile ? FileIcon : FolderIcon;
               const name = item.prefix.split("/").pop() || "";
               const metadata: Metadata = {
                 ...props.metadata,
                 name,
                 prefix: item.prefix,
               };
+
               return (
                 <tr
                   key={item.prefix}
                   className={`${
-                    isFile
-                      ? "hover:bg-neutral text-primary"
-                      : "hover:bg-neutral"
+                    isFile ? "hover:bg-neutral" : "hover:bg-neutral"
                   }`}
                 >
-                  <th>
+                  <th
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      props.onIconClick(item);
+                    }}
+                  >
                     {isFile ? (
-                      <FileIcon />
+                      <FileIcon
+                        className={
+                          item.isSelected
+                            ? "fill-primary text-white stroke-1"
+                            : "fill-none"
+                        }
+                      />
                     ) : (
-                      <StorageLink metadata={metadata}>
-                        <Icon />
-                      </StorageLink>
+                      <FolderIcon
+                        className={
+                          item.isSelected
+                            ? "fill-primary text-white stroke-1"
+                            : "fill-none"
+                        }
+                      />
                     )}
                   </th>
                   <td className="flex flex-row items-center">
                     {isFile ? (
-                      <p className="ml-2">{name}</p>
+                      <p className="ml-2 text-primary">{name}</p>
                     ) : (
                       <StorageLink metadata={metadata} key={item.prefix}>
                         <p className={"ml-2"}>{name}</p>

@@ -7,7 +7,12 @@ export const getStorageUrl = (metadata: Pick<Metadata, "id" | "prefix">) => {
 
 export const StorageLink = (props: {
   metadata: Metadata;
+  className?: string;
   children?: React.ReactNode;
 }) => {
-  return <Link href={getStorageUrl(props.metadata)}>{props.children}</Link>;
+  return (
+    <Link href={getStorageUrl(props.metadata)} className={props.className}>
+      {props.children}
+    </Link>
+  );
 };

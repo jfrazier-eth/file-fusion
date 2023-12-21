@@ -19,7 +19,7 @@ export function Locations(props: Props) {
   }
 
   return (
-    <div className="flex flex-col h-full bg-base w-32 justify-between border-r border-primary">
+    <div className="flex flex-col h-full bg-base w-32 min-w-32 justify-between border-r border-primary">
       <ul className="menu [&_li>*]:rounded-none p-0">
         {storages.data.map((item) => {
           return (
@@ -29,7 +29,9 @@ export function Locations(props: Props) {
                 item.id === props.metadata.id ? "text-primary" : ""
               } hover:bg-neutral border-b border-b-neutral`}
             >
-              <StorageLink metadata={item}>{item.name}</StorageLink>
+              <StorageLink metadata={item} className="px-4 py-2">
+                {item.name}
+              </StorageLink>
             </li>
           );
         })}
@@ -46,7 +48,7 @@ export function Locations(props: Props) {
         >
           <div className="flex flex-row items-center justify-center">
             <HardDriveIcon />
-            <p className="ml-1 text-xs text-neutral">(cmd + s)</p>
+            <p className="ml-1 text-xs text-neutral">(cmd+n)</p>
           </div>
         </button>
       </div>

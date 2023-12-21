@@ -9,12 +9,14 @@ import { useParams } from "./hooks/params";
 import { useKeyBindings } from "./hooks/key-bindings";
 import { NewStorageModal } from "./components/new-storage-modal";
 import { Messages } from "./lib/messages";
+import { StagingBuffer } from "./components/staging-buffer";
+import { useBufferState } from "./hooks/buffer-state";
 
 export default function Home() {
   let [isNewStorageModalOpen, setIsNewStorageModalOpen] = useState(false);
   const params = useParams();
   const { query: storage, mutation: storageMutation } = useStorage(params);
-
+  const { state, remove, toggle, reset } = useBufferState();
   const toggleNewStorageModal = useCallback(
     () => setIsNewStorageModalOpen((prev) => !prev),
     [setIsNewStorageModalOpen],
@@ -51,8 +53,20 @@ export default function Home() {
           onNewClick={() => setIsNewStorageModalOpen(true)}
         />
         <div className="p-2 text-sm h-full max-h-full grow overflow-clip">
-          <Contents metadata={storage.data} />
+          <Contents
+            bufferState={state}
+            metadata={storage.data}
+            onIconClick={(item) => {
+              toggle(item, storage.data);
+            }}
+          />
         </div>
+
+        <StagingBuffer
+          state={state}
+          remove={remove}
+          reset={reset}
+        ></StagingBuffer>
       </div>
       <NewStorageModal
         isOpen={isNewStorageModalOpen}

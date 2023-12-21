@@ -4,7 +4,7 @@ export enum ObjectStoreKind {
 }
 
 export interface Metadata {
-  id: string;
+  id: number;
   name: string;
   prefix: string;
   kind: ObjectStoreKind;
