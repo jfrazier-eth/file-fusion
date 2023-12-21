@@ -11,6 +11,7 @@ import { NewStorageModal } from "./components/new-storage-modal";
 import { Messages } from "./lib/messages";
 import { StagingBuffer } from "./components/staging-buffer";
 import { useBufferState } from "./hooks/buffer-state";
+import { useRouter } from "next/navigation";
 
 export default function Home() {
   let [isNewStorageModalOpen, setIsNewStorageModalOpen] = useState(false);
@@ -21,9 +22,38 @@ export default function Home() {
     () => setIsNewStorageModalOpen((prev) => !prev),
     [setIsNewStorageModalOpen],
   );
-
+  const router = useRouter();
   useKeyBindings({
-    toggleNewStorageModal,
+    bindings: [
+      {
+        name: "back",
+        metaKey: true,
+        key: "[",
+        description: "Navigate to the previous page",
+        onPress: router.back,
+      },
+      {
+        name: "forward",
+        metaKey: true,
+        key: "]",
+        description: "Navigate to the next page",
+        onPress: router.forward,
+      },
+      {
+        name: "Toggle storage modal",
+        metaKey: true,
+        key: "n",
+        description: "Toggle the new storage modal",
+        onPress: toggleNewStorageModal,
+      },
+      {
+        name: "Clear buffer",
+        metaKey: true,
+        key: "Backspace",
+        description: "Clear the buffer list",
+        onPress: reset,
+      },
+    ],
   });
 
   const [container, { height: containerHeight }] = useElementSize();
