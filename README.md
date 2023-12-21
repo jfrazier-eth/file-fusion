@@ -1,5 +1,6 @@
 # File Fusion
 * A file explorer for data lakes
+
 Powered by [DataFusion](https://github.com/apache/arrow-datafusion).
 
 ## Features
