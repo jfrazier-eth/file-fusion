@@ -25,12 +25,12 @@ export const StagingBuffer = (props: Props) => {
   }, [props.state]);
 
   return (
-    <div className="flex flex-col h-full bg-base w-64 min-w-64 max-w-64 border-l border-primary">
+    <div className="flex flex-col h-full bg-base w-[22rem] min-w-[22rem] max-w-[22rem] border-l border-primary">
       <h2 className="text-sm text-center py-2 px-4 border-b border-neutral">
         Buffer
       </h2>
       <div className="flex flex-col grow justify-between text">
-        <ul className="menu [&_li>*]:rounded-none p-0">
+        <ul className="menu [&_li>*]:rounded-none p-0 w-full">
           {items.map((item) => {
             const parts = item.prefix.split("/");
             let shortName;
@@ -62,9 +62,27 @@ export const StagingBuffer = (props: Props) => {
                 key={item.id}
                 className={`${
                   isAtLocation ? "text-primary" : ""
-                } hover:bg-neutral border-b border-b-neutral`}
+                }border-b border-b-neutral flex flex-row justify-between items-center p-0 w-full flex-nowrap`}
               >
-                <StorageLink metadata={metadata}>{shortName}</StorageLink>
+                <StorageLink metadata={metadata} className="px-2 grow mr-1">
+                  {shortName}
+                </StorageLink>
+
+                <div className="flex flex-row p-0 items-center justify-end w-min mr-2">
+                  <button className="btn h-full btn-accent btn-xs m-0 py-0 flex flex-row justify-center items-center hover:bg-black hover:text-accent">
+                    <QueryIcon className="h-full" />
+                  </button>
+                  <button
+                    className="btn h-full btn-accent btn-xs m-0 py-0 flex flex-row justify-center items-center hover:bg-black hover:text-accent"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      props.remove(item.id);
+                    }}
+                  >
+                    <DeleteIcon className="h-full" />
+                  </button>
+                </div>
               </li>
             );
           })}

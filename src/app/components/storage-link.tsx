@@ -11,7 +11,10 @@ export const StorageLink = (props: {
   children?: React.ReactNode;
 }) => {
   return (
-    <Link href={getStorageUrl(props.metadata)} className={props.className}>
+    <Link
+      href={getStorageUrl(props.metadata)}
+      className={`hover:bg-neutral ${props.className}`}
+    >
       {props.children}
     </Link>
   );

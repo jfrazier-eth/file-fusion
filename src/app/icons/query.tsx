@@ -1,4 +1,4 @@
-export const QueryIcon = () => {
+export const QueryIcon = (props: { className?: string }) => {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -10,7 +10,7 @@ export const QueryIcon = () => {
       strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className="w-4 h-4"
+      className={`${props.className ? props.className : ""} w-4 h-4`}
     >
       <circle cx="12" cy="12" r="1"></circle>
       <path d="M20.2 20.2c2.04-2.03.02-7.36-4.5-11.9-4.54-4.52-9.87-6.54-11.9-4.5-2.04 2.03-.02 7.36 4.5 11.9 4.54 4.52 9.87 6.54 11.9 4.5Z"></path>

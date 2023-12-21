@@ -27,7 +27,7 @@ export function Locations(props: Props) {
               key={item.id}
               className={`${
                 item.id === props.metadata.id ? "text-primary" : ""
-              } hover:bg-neutral border-b border-b-neutral`}
+              } border-b border-b-neutral`}
             >
               <StorageLink metadata={item} className="px-4 py-2">
                 {item.name}

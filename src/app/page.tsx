@@ -92,11 +92,7 @@ export default function Home() {
           />
         </div>
 
-        <StagingBuffer
-          state={state}
-          remove={remove}
-          reset={reset}
-        ></StagingBuffer>
+        <StagingBuffer state={state} remove={remove} reset={reset} />
       </div>
       <NewStorageModal
         isOpen={isNewStorageModalOpen}
