@@ -5,10 +5,12 @@ export function Modal({
   close,
   title,
   children,
+  className,
 }: {
   isOpen: boolean;
   close: () => void;
   title: string;
+  className?: string;
   children: React.ReactNode;
 }) {
   useEffect(() => {
@@ -29,7 +31,6 @@ export function Modal({
     <>
       <input
         type="checkbox"
-        id="my_modal_6"
         className="modal-toggle"
         checked={isOpen}
         onChange={() => {
@@ -46,7 +47,9 @@ export function Modal({
         }}
       >
         <div
-          className="modal-box max-w-sm p-3"
+          className={`modal-box max-w-sm bg-primary-content border border-accent rounded-sm p-3 ${
+            className ? className : ""
+          }`}
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();

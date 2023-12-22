@@ -12,16 +12,15 @@ import { Messages } from "./lib/messages";
 import { StagingBuffer } from "./components/staging-buffer";
 import { useBufferState } from "./hooks/buffer-state";
 import { useRouter } from "next/navigation";
+import { SQLEditor } from "./components/sql-editor";
 
 export default function Home() {
   let [isNewStorageModalOpen, setIsNewStorageModalOpen] = useState(false);
+  let [isEditorOpen, setIsEditorOpen] = useState(true);
   const params = useParams();
   const { query: storage, mutation: storageMutation } = useStorage(params);
   const { state, remove, toggle, reset } = useBufferState();
-  const toggleNewStorageModal = useCallback(
-    () => setIsNewStorageModalOpen((prev) => !prev),
-    [setIsNewStorageModalOpen],
-  );
+
   const router = useRouter();
   useKeyBindings({
     bindings: [
@@ -44,7 +43,14 @@ export default function Home() {
         metaKey: true,
         key: "n",
         description: "Toggle the new storage modal",
-        onPress: toggleNewStorageModal,
+        onPress: () => setIsNewStorageModalOpen((prev) => !prev),
+      },
+      {
+        name: "Toggle query modal",
+        metaKey: true,
+        key: "f",
+        description: "Toggle the query modal",
+        onPress: () => setIsEditorOpen((prev) => !prev),
       },
       {
         name: "Clear buffer",
@@ -94,6 +100,7 @@ export default function Home() {
 
         <StagingBuffer state={state} remove={remove} reset={reset} />
       </div>
+      <SQLEditor isOpen={isEditorOpen} close={() => setIsEditorOpen(false)} />
       <NewStorageModal
         isOpen={isNewStorageModalOpen}
         close={() => setIsNewStorageModalOpen(false)}
