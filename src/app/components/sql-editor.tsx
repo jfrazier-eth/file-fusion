@@ -1,5 +1,3 @@
-import { useState } from "react";
-import { Metadata } from "../lib/messages";
 import { Modal } from "./modal";
 import AceEditor from "react-ace";
 
@@ -67,14 +65,12 @@ export const SQLEditor = (props: Props) => {
         </div>
 
         <div>
-          <h2>Results</h2>
           {results.length > 0 ? (
             <table className="table">
               <thead>
                 <tr>
                   <th>Item</th>
                   {Object.keys(results[0]).map((key) => {
-                    console.log(key);
                     return (
                       <th className="" key={key}>
                         {key}

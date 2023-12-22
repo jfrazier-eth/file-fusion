@@ -10,8 +10,10 @@ use crate::{
     events,
     messages::Messages,
     query::{Buffer, FileSystemBuffer},
-    state::{store::Metadata, App},
-    storage::get_home_dir,
+    state::{
+        store::{get_home_dir, Metadata},
+        App,
+    },
 };
 
 use self::buffer::RegisterBuffer;

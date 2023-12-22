@@ -3,8 +3,7 @@
 
 use app::{
     commands,
-    state::{App, Config},
-    storage::get_home_dir,
+    state::{store::get_home_dir, App, Config},
 };
 use futures::lock::Mutex;
 use std::{

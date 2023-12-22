@@ -112,19 +112,3 @@ impl Buffer {
         Ok(tables)
     }
 }
-
-// // A query contains a SQL query to execute (statement) over a buffer
-// #[derive(Debug, Clone)]
-// struct Query {
-//     buffer: Buffer,
-//     statement: String,
-// }
-
-// impl Query {
-//     pub fn new() -> Self {
-//         Self {
-//             buffer: Buffer::new(),
-//             statement: String::new(),
-//         }
-//     }
-// }

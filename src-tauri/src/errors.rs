@@ -1,12 +1,7 @@
-use thiserror::Error;
-
-#[derive(Debug, Error)]
+#[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error("home dir not found")]
     HomeDirNotFound,
-
-    #[error("cannot list contents of a file")]
-    CannotListContentsOfAFile,
 
     #[error("failed to deserialize events")]
     FailedToDeserializeEvents,
@@ -19,9 +14,6 @@ pub enum Error {
 
     #[error("failed to get state lock")]
     FailedToGetStateLock,
-
-    #[error("failed to parse path")]
-    ParsePath,
 
     #[error("not found")]
     NotFound,

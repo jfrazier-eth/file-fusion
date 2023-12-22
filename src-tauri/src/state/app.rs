@@ -1,15 +1,10 @@
-use datafusion::{
-    arrow,
-    dataframe::DataFrame,
-    execution::{context::SessionContext, memory_pool::MemoryPool},
-};
+use datafusion::{arrow, execution::context::SessionContext};
 use serde_json::{Map, Value};
 
 use crate::{
     errors::Error,
     events::{store, Events},
     query::Buffer,
-    storage::get_home_dir,
 };
 
 use std::{
@@ -20,7 +15,9 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use super::store::{Connection, LocalConnection, Metadata, ObjectStore, ObjectStoreKind};
+use super::store::{
+    get_home_dir, Connection, LocalConnection, Metadata, ObjectStore, ObjectStoreKind,
+};
 
 #[derive(Debug, Clone)]
 pub struct State {
@@ -158,7 +155,7 @@ impl App {
             Ok(event) => event,
             Err(_) => return Err(Error::FailedToSerializeEvents),
         };
-        writeln!(file, "{}", event).map_err(|_| Error::FailedToWriteToEventsFile)
+        writeln!(file, "{}", event).map_err(|err| Error::Io(err))
     }
 
     fn update(&mut self, event: &Events) -> Result<(), Error> {
