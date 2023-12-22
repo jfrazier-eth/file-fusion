@@ -40,6 +40,9 @@ pub enum Error {
 
     #[error(transparent)]
     DataFusionError(#[from] datafusion::error::DataFusionError),
+
+    #[error(transparent)]
+    ArrowError(#[from] datafusion::arrow::error::ArrowError),
 }
 
 impl serde::Serialize for Error {

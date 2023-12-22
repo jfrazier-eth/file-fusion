@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { Metadata } from "../lib/messages";
 import { Content, ContentKind } from "./contents";
+import { RegisterBuffer } from "../lib/messages/buffer";
+import { invoke } from "@tauri-apps/api/tauri";
 
 export interface BufferStateItem {
   id: string;
@@ -13,8 +15,26 @@ export const getId = (storeId: number, prefix: string) => {
   return `store:${storeId}:prefix:${prefix}`;
 };
 
+export const register = async (
+  state: Record<string, BufferStateItem>,
+): Promise<string[]> => {
+  const buffer: RegisterBuffer = {
+    file_systems: [],
+  };
+
+  for (const item of Object.values(state) as BufferStateItem[]) {
+    buffer.file_systems.push({
+      store: item.store.id,
+      prefixes: [item.prefix],
+    });
+  }
+
+  return await invoke("register_buffer", { request: buffer });
+};
+
 export const useBufferState = () => {
   const [state, setState] = useState<Record<string, BufferStateItem>>({});
+  const [tables, setTables] = useState<string[]>([]);
 
   const add = (
     content: Content,
@@ -86,11 +106,23 @@ export const useBufferState = () => {
     setState({});
   };
 
+  const registerBuffer = () => {
+    register(state)
+      .then((tables) => {
+        console.log(`Registered tables`, tables);
+        setTables(tables);
+      })
+      .catch((err) => {
+        console.error(err);
+      });
+  };
+
   return {
     state,
     add,
     remove,
     toggle,
     reset,
+    register: registerBuffer,
   };
 };

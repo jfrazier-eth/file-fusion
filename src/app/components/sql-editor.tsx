@@ -6,21 +6,18 @@ import AceEditor from "react-ace";
 import "ace-builds/src-noconflict/mode-sql";
 import "ace-builds/src-noconflict/theme-monokai";
 import "ace-builds/src-noconflict/ext-language_tools";
-
-interface Query {
-  statement: string;
-  table: {
-    locations: Metadata[];
-  };
-}
+import { useQuery } from "../hooks/use-query";
 
 interface Props {
   isOpen: boolean;
   close: () => void;
+  tables: string;
 }
 
 export const SQLEditor = (props: Props) => {
-  const [statement, setStatement] = useState("SELECT * FROM data;");
+  const { statement, setStatement, run, results } = useQuery(
+    "SELECT * FROM data;",
+  );
 
   return (
     <Modal
@@ -56,7 +53,14 @@ export const SQLEditor = (props: Props) => {
             <button className="btn btn-secondary btn-sm rounded-none">
               Explain
             </button>
-            <button className="btn btn-primary btn-sm rounded-none" disabled>
+            <button
+              className="btn btn-primary btn-sm rounded-none"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                run();
+              }}
+            >
               Run
             </button>
           </div>
@@ -64,6 +68,46 @@ export const SQLEditor = (props: Props) => {
 
         <div>
           <h2>Results</h2>
+          {results.length > 0 ? (
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Item</th>
+                  {Object.keys(results[0]).map((key) => {
+                    console.log(key);
+                    return (
+                      <th className="" key={key}>
+                        {key}
+                      </th>
+                    );
+                  })}
+                </tr>
+              </thead>
+              <tbody>
+                {results.map((row, index) => {
+                  return (
+                    <tr key={`${index}`}>
+                      <th>{index + 1}</th>
+                      {Object.values(row).map((value) => {
+                        let data =
+                          typeof value === "string" || typeof value === "number"
+                            ? value
+                            : JSON.stringify(value);
+
+                        return (
+                          <td className="w-3 max-w-3" key={data}>
+                            {data}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          ) : (
+            <></>
+          )}
         </div>
       </div>
     </Modal>

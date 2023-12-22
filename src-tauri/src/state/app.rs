@@ -1,8 +1,14 @@
-use datafusion::execution::context::SessionContext;
+use datafusion::{
+    arrow,
+    dataframe::DataFrame,
+    execution::{context::SessionContext, memory_pool::MemoryPool},
+};
+use serde_json::{Map, Value};
 
 use crate::{
     errors::Error,
     events::{store, Events},
+    query::Buffer,
     storage::get_home_dir,
 };
 
@@ -38,6 +44,7 @@ pub struct App {
     event_id: usize,
     state: Arc<Mutex<State>>,
     session: SessionContext,
+    tables: Vec<String>,
 }
 
 impl App {
@@ -47,6 +54,7 @@ impl App {
             event_id: 0,
             state: Arc::new(Mutex::new(State::new())),
             session: SessionContext::new(),
+            tables: Vec::new(),
         }
     }
 
@@ -75,10 +83,6 @@ impl App {
 
     pub fn next_event_id(&self) -> usize {
         self.event_id + 1
-    }
-
-    pub fn get_ctx(&self) -> &SessionContext {
-        &self.session
     }
 
     pub fn create_store_id(&self) -> Result<usize, Error> {
@@ -173,5 +177,32 @@ impl App {
         }
 
         Ok(())
+    }
+
+    pub async fn register(&mut self, buffer: &Buffer) -> Result<Vec<String>, Error> {
+        let mut tables = buffer.register(&self.session).await?;
+
+        self.tables.append(&mut tables);
+
+        Ok(self.tables.clone())
+    }
+    pub async fn query(&self, statement: &str) -> Result<Vec<Map<String, Value>>, Error> {
+        println!("Starting query! {} Generating data frame... ", statement);
+        let df = self
+            .session
+            .sql(statement)
+            .await
+            .map_err(|e| Error::DataFusionError(e))?;
+
+        println!("Created data frame. Executing...");
+
+        let batches = df.collect().await?;
+
+        println!("Executed query. Transforming rows...");
+        let batches: Vec<_> = batches.iter().collect();
+
+        let list = arrow::json::writer::record_batches_to_json_rows(&batches[..])?;
+        println!("Completed query.");
+        Ok(list)
     }
 }

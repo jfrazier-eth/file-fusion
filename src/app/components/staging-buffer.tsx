@@ -12,6 +12,7 @@ interface Props {
   state: Record<string, BufferStateItem>;
   remove: (id: string) => void;
   reset: () => void;
+  register: () => void;
 }
 
 const format = (str: string) => shorten(str, 5, 5);
@@ -88,27 +89,42 @@ export const StagingBuffer = (props: Props) => {
           })}
         </ul>
 
-        <div className="flex flex-row">
-          <button
-            className="btn btn-primary btn-sm grow rounded-none m-0 py-0 flex flex-row justify-center"
-            disabled
-          >
-            <QueryIcon />
-            <p className="text-xs text-neutral">(cmd+f)</p>
-          </button>
-          <div className="w-1 min-w-1"></div>
+        <div className="flex flex-col">
+          <div className="flex flex-row">
+            <button
+              className="btn btn-primary btn-sm grow rounded-none m-0 py-0 flex flex-row justify-center"
+              disabled
+            >
+              <QueryIcon />
+              <p className="text-xs text-neutral">(cmd+f)</p>
+            </button>
+            <div className="w-1 min-w-1"></div>
 
-          <button
-            className="btn btn-primary btn-sm grow rounded-none m-0 py-0 flex flex-row justify-center items-center"
-            onClick={props.reset}
-          >
-            <ClearIcon />
-            <div className="flex flex-row justify-center items-center">
-              <p className="text-xs text-neutral">(cmd+</p>
-              <DeleteIcon className="p-0 m-0 h-3 w-3 text-neutral" />
-              <p className="text-xs text-neutral">)</p>
-            </div>
-          </button>
+            <button
+              className="btn btn-primary btn-sm grow rounded-none m-0 py-0 flex flex-row justify-center items-center"
+              onClick={props.reset}
+            >
+              <ClearIcon />
+              <div className="flex flex-row justify-center items-center">
+                <p className="text-xs text-neutral">(cmd+</p>
+                <DeleteIcon className="p-0 m-0 h-3 w-3 text-neutral" />
+                <p className="text-xs text-neutral">)</p>
+              </div>
+            </button>
+          </div>
+          <div className="flex flex-row border-t border-neutral">
+            <button
+              className="btn btn-primary btn-sm grow rounded-none m-0 py-0 flex flex-row justify-center items-center"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+
+                props.register();
+              }}
+            >
+              Save
+            </button>
+          </div>
         </div>
       </div>
     </div>

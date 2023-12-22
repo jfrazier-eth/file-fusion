@@ -31,7 +31,9 @@ fn main() {
             commands::contents,
             commands::storage,
             commands::storages,
-            commands::update
+            commands::update,
+            commands::register_buffer,
+            commands::query
         ])
         .setup(|app| {
             #[cfg(debug_assertions)] // only include this code on debug builds

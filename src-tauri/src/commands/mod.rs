@@ -2,18 +2,21 @@ use std::sync::Arc;
 
 use futures::lock::Mutex;
 use object_store::path::Path;
+use serde_json::{Map, Value};
 
 use crate::{
     content::{Content, Contents},
     errors::Error,
     events,
     messages::Messages,
+    query::{Buffer, FileSystemBuffer},
     state::{store::Metadata, App},
     storage::get_home_dir,
 };
 
+use self::buffer::RegisterBuffer;
+
 mod buffer;
-pub use buffer::register_buffer;
 
 #[tauri::command]
 pub fn home_dir() -> Result<String, Error> {
@@ -68,7 +71,7 @@ pub async fn contents(
 }
 
 #[tauri::command]
-pub async fn update<'a>(
+pub async fn update(
     app: tauri::State<'_, Arc<Mutex<App>>>,
     message: Messages,
 ) -> Result<(), Error> {
@@ -132,4 +135,43 @@ pub async fn storage<'a>(
         Some(path) => Ok(storage.with_prefix(path)),
         None => Ok(storage),
     }
+}
+
+#[tauri::command]
+pub async fn register_buffer(
+    app: tauri::State<'_, Arc<Mutex<App>>>,
+    request: RegisterBuffer,
+) -> Result<Vec<String>, Error> {
+    let mut app = app.lock().await;
+
+    let mut buffer = Buffer::new();
+
+    for file_system in request.file_systems {
+        let store = app.get_store(&file_system.store)?.ok_or(Error::NotFound)?;
+        let paths: Result<Vec<Path>, object_store::path::Error> = file_system
+            .prefixes
+            .iter()
+            .map(|prefix| Path::parse(prefix))
+            .collect();
+
+        let paths = paths.map_err(|_| Error::NotFound)?;
+
+        let file_system_buffer = FileSystemBuffer::new(store, &paths);
+        buffer.insert(file_system_buffer);
+    }
+
+    let tables = app.register(&buffer).await?;
+
+    Ok(tables)
+}
+
+#[tauri::command]
+pub async fn query(
+    app: tauri::State<'_, Arc<Mutex<App>>>,
+    statement: String,
+) -> Result<Vec<Map<String, Value>>, Error> {
+    let app = app.lock().await;
+
+    let results = app.query(&statement).await?;
+    Ok(results)
 }

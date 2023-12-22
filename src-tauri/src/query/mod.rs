@@ -72,20 +72,24 @@ impl Buffer {
     pub async fn register(&self, ctx: &SessionContext) -> Result<Vec<String>, Error> {
         let mut tables = Vec::new();
         for (_, file_system) in self.file_systems.iter() {
-            let get_path: Box<dyn Fn(&str) -> String> = match file_system.store.connection.clone() {
-                Connection::Local(_) => {
-                    Box::new(|prefix: &str| -> String { format!("{}", prefix) })
-                }
-                Connection::Remote(connection) => {
-                    let bucket_name = connection.bucket;
-                    let base_url = format!("s3://{bucket_name}");
-                    let s3_url = Url::parse(&base_url)?;
-                    ctx.runtime_env()
-                        .register_object_store(&s3_url, file_system.store.client.clone());
+            let get_path: Box<dyn Fn(&str) -> String + Send + Sync> =
+                match file_system.store.connection.clone() {
+                    Connection::Local(_) => {
+                        let closure = |prefix: &str| -> String { format!("{}", prefix) };
+                        Box::new(closure)
+                    }
+                    Connection::Remote(connection) => {
+                        let bucket_name = connection.bucket;
+                        let base_url = format!("s3://{bucket_name}");
+                        let s3_url = Url::parse(&base_url)?;
+                        ctx.runtime_env()
+                            .register_object_store(&s3_url, file_system.store.client.clone());
 
-                    Box::new(move |prefix: &str| -> String { format!("{}/{}", base_url, prefix) })
-                }
-            };
+                        let closure =
+                            move |prefix: &str| -> String { format!("{}/{}", base_url, prefix) };
+                        Box::new(closure)
+                    }
+                };
 
             for prefix in file_system.prefixes.iter() {
                 let file_format = ParquetFormat::default().with_enable_pruning(Some(true));

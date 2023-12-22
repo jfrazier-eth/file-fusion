@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useState } from "react";
+import { useState } from "react";
 import { Header } from "./components/header";
 import { Locations } from "./components/locations";
 import { Contents } from "./components/contents";
@@ -19,7 +19,7 @@ export default function Home() {
   let [isEditorOpen, setIsEditorOpen] = useState(true);
   const params = useParams();
   const { query: storage, mutation: storageMutation } = useStorage(params);
-  const { state, remove, toggle, reset } = useBufferState();
+  const { state, remove, toggle, reset, register } = useBufferState();
 
   const router = useRouter();
   useKeyBindings({
@@ -98,7 +98,12 @@ export default function Home() {
           />
         </div>
 
-        <StagingBuffer state={state} remove={remove} reset={reset} />
+        <StagingBuffer
+          state={state}
+          remove={remove}
+          reset={reset}
+          register={register}
+        />
       </div>
       <SQLEditor isOpen={isEditorOpen} close={() => setIsEditorOpen(false)} />
       <NewStorageModal
