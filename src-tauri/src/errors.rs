@@ -34,6 +34,12 @@ pub enum Error {
 
     #[error(transparent)]
     ObjectStore(#[from] object_store::Error),
+
+    #[error(transparent)]
+    UrlParseError(#[from] url::ParseError),
+
+    #[error(transparent)]
+    DataFusionError(#[from] datafusion::error::DataFusionError),
 }
 
 impl serde::Serialize for Error {

@@ -1,3 +1,5 @@
+use datafusion::execution::context::SessionContext;
+
 use crate::{
     errors::Error,
     events::{store, Events},
@@ -35,6 +37,7 @@ pub struct App {
     config: Config,
     event_id: usize,
     state: Arc<Mutex<State>>,
+    session: SessionContext,
 }
 
 impl App {
@@ -43,6 +46,7 @@ impl App {
             config,
             event_id: 0,
             state: Arc::new(Mutex::new(State::new())),
+            session: SessionContext::new(),
         }
     }
 
@@ -58,19 +62,23 @@ impl App {
         Ok(stores)
     }
 
-    pub fn get_store(&self, id: usize) -> Result<Option<ObjectStore>, Error> {
+    pub fn get_store(&self, id: &usize) -> Result<Option<ObjectStore>, Error> {
         let state = self.state.lock().map_err(|_| Error::FailedToGetStateLock)?;
         let store = state.stores.get(&id).map(|store| store.clone());
         Ok(store)
     }
 
-    pub fn get_metadata(&self, id: usize) -> Result<Option<Metadata>, Error> {
+    pub fn get_metadata(&self, id: &usize) -> Result<Option<Metadata>, Error> {
         self.get_store(id)
             .map(|store| store.map(|store| store.metadata))
     }
 
     pub fn next_event_id(&self) -> usize {
         self.event_id + 1
+    }
+
+    pub fn get_ctx(&self) -> &SessionContext {
+        &self.session
     }
 
     pub fn create_store_id(&self) -> Result<usize, Error> {

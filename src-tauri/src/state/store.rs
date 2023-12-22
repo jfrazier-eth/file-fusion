@@ -34,11 +34,11 @@ pub struct LocalConnection {}
 
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
 pub struct RemoteConnection {
-    region: String,
-    bucket: String,
-    access_key: String,
-    access_key_secret: String,
-    endpoint: String,
+    pub region: String,
+    pub bucket: String,
+    pub access_key: String,
+    pub access_key_secret: String,
+    pub endpoint: String,
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]

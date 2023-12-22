@@ -1,6 +1,6 @@
-mod manager;
+mod app;
 
 pub mod events;
 pub mod store;
 
-pub use manager::*;
+pub use app::*;

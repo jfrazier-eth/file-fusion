@@ -23,6 +23,8 @@ directories = "5.0.1"
 rand = "0.8.5"
 object_store = { version = "0.8.0", features = ["aws"] }
 futures = "0.3.29"
+datafusion = "34.0.0"
+url = "2.5.0"
 
 [features]
 # this feature is used for production builds or when `devPath` points to the filesystem and the built-in dev server is disabled.

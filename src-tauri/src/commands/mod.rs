@@ -12,6 +12,9 @@ use crate::{
     storage::get_home_dir,
 };
 
+mod buffer;
+pub use buffer::register_buffer;
+
 #[tauri::command]
 pub fn home_dir() -> Result<String, Error> {
     get_home_dir()
@@ -24,7 +27,7 @@ pub async fn contents(
     prefix: String,
 ) -> Result<Contents, Error> {
     let app = app.lock().await;
-    let store = app.get_store(id)?;
+    let store = app.get_store(&id)?;
 
     let store = match store {
         None => return Err(Error::NotFound),
@@ -102,7 +105,7 @@ pub async fn storage<'a>(
 
     let storage = match id {
         Some(id) => {
-            let storage = app.get_metadata(id)?;
+            let storage = app.get_metadata(&id)?;
             match storage {
                 Some(storage) => Some(storage),
                 None => None,
