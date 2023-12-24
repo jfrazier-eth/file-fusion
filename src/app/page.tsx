@@ -122,7 +122,6 @@ export default function Home() {
               },
             };
 
-            console.log(`Saving message`, message);
             buffersMutation.mutate(message);
           }}
         />
