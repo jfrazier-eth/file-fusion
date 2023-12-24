@@ -15,8 +15,8 @@ pub enum Error {
     #[error("failed to get state lock")]
     FailedToGetStateLock,
 
-    #[error("not found")]
-    NotFound,
+    #[error("not found `{0}`")]
+    NotFound(String),
 
     #[error(transparent)]
     Io(#[from] std::io::Error),

@@ -4,7 +4,9 @@ import { useState } from "react";
 export type Row = Record<string, string | number | object>;
 
 const query = async (statement: string) => {
-  const rows = (await invoke("query", { statement })) as Row[];
+  const rows = (await invoke("query", {
+    query: { statement, buffer: 1 }, // TODO
+  })) as Row[];
 
   return rows;
 };
@@ -18,7 +20,6 @@ export const useQuery = (defaultValue: string) => {
     setResults([]);
     query(statement)
       .then((value) => {
-        console.log(value);
         setResults(value);
       })
       .catch((err) => {

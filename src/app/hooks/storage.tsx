@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { invoke } from "@tauri-apps/api/tauri";
-import { Messages, Metadata } from "../lib/messages";
+import { CreateObjectStoreMessage, Messages, Metadata } from "../lib/messages";
 
 export type UseStorageResponse = Metadata;
 
@@ -20,7 +20,10 @@ export const useStorage = (params: {
   });
 
   const mutation = useMutation({
-    mutationFn: (message: Messages) => {
+    mutationFn: (msg: CreateObjectStoreMessage) => {
+      const message: Messages = {
+        CreateObjectStore: msg,
+      };
       return invoke("update", {
         message,
       });

@@ -7,18 +7,14 @@ use serde_json::{Map, Value};
 use crate::{
     content::{Content, Contents},
     errors::Error,
-    events,
+    events::{self, buffer, Events},
     messages::Messages,
-    query::{Buffer, FileSystemBuffer},
+    query::Query,
     state::{
         store::{get_home_dir, Metadata},
-        App,
+        App, BufferState,
     },
 };
-
-use self::buffer::RegisterBuffer;
-
-mod buffer;
 
 #[tauri::command]
 pub fn home_dir() -> Result<String, Error> {
@@ -32,10 +28,11 @@ pub async fn contents(
     prefix: String,
 ) -> Result<Contents, Error> {
     let app = app.lock().await;
-    let store = app.get_store(&id)?;
+    let state = app.get_state().await;
+    let store = app.get_store(&id, &state)?;
 
     let store = match store {
-        None => return Err(Error::NotFound),
+        None => return Err(Error::NotFound(format!("store with id {}", &id))),
         Some(store) => store,
     };
 
@@ -64,6 +61,14 @@ pub async fn contents(
     let mut items = [files, dirs].concat();
     items.sort_by(|a, b| a.prefix.cmp(&b.prefix));
 
+    if items.len() == 0 {
+        let object = store.client.get(&path).await?;
+        let meta = object.meta;
+        let schema = app.infer_schema(&store.client, &[meta]).await?;
+        println!("Found Schema {:?}", schema);
+        dbg!(schema);
+    }
+
     let contents = Contents {
         prefix: prefix.clone(),
         items,
@@ -77,47 +82,57 @@ pub async fn update(
     app: tauri::State<'_, Arc<Mutex<App>>>,
     message: Messages,
 ) -> Result<(), Error> {
-    let mut app = app.lock().await;
-
-    let event_id = app.next_event_id();
+    let app = app.lock().await;
+    let mut state = app.get_state().await;
     let event: events::Events = match message {
         Messages::CreateObjectStore(message) => {
-            let store_id = app.create_store_id()?;
+            let store_id = App::create_store_id(&state)?;
+            let event_id = App::next_event_id(&state);
             let event = events::Events::CreateObjectStore(events::store::Create::from_msg(
                 event_id, store_id, message,
             ));
             event
         }
+        Messages::CreateBuffer(message) => {
+            let event_id = App::next_event_id(&state);
+            let event = Events::CreateBuffer(buffer::Create {
+                id: event_id,
+                metadata: message.metadata,
+            });
+            event
+        }
     };
-    app.save(&event)
+    app.save(&event, &mut state).await
 }
 
 #[tauri::command]
 pub async fn storages<'a>(
     state: tauri::State<'_, Arc<Mutex<App>>>,
 ) -> Result<Vec<Metadata>, Error> {
-    let manager = state.lock().await;
-    manager.list_stores()
+    let app = state.lock().await;
+    let state = app.get_state().await;
+    app.list_stores(&state)
 }
 
 #[tauri::command]
 pub async fn storage<'a>(
-    state: tauri::State<'_, Arc<Mutex<App>>>,
+    app: tauri::State<'_, Arc<Mutex<App>>>,
     id: Option<usize>,
     prefix: Option<String>,
 ) -> Result<Metadata, Error> {
-    let app = state.lock().await;
+    let app = app.lock().await;
+    let state = app.get_state().await;
 
     let storage = match id {
         Some(id) => {
-            let storage = app.get_metadata(&id)?;
+            let storage = app.get_metadata(&id, &state)?;
             match storage {
                 Some(storage) => Some(storage),
                 None => None,
             }
         }
         None => {
-            let storages = app.list_stores()?;
+            let storages = app.list_stores(&state)?;
             let storage = storages.get(0);
             match storage {
                 Some(storage) => Some(storage.clone()),
@@ -129,7 +144,7 @@ pub async fn storage<'a>(
     let storage = match storage {
         Some(storage) => storage,
         None => {
-            return Err(Error::NotFound);
+            return Err(Error::NotFound(format!("no storage with id {:?}", id)));
         }
     };
 
@@ -140,40 +155,23 @@ pub async fn storage<'a>(
 }
 
 #[tauri::command]
-pub async fn register_buffer(
+pub async fn query(
     app: tauri::State<'_, Arc<Mutex<App>>>,
-    request: RegisterBuffer,
-) -> Result<Vec<String>, Error> {
-    let mut app = app.lock().await;
+    query: Query,
+) -> Result<Vec<Map<String, Value>>, Error> {
+    let app = app.lock().await;
+    let state = app.get_state().await;
 
-    let mut buffer = Buffer::new();
-
-    for file_system in request.file_systems {
-        let store = app.get_store(&file_system.store)?.ok_or(Error::NotFound)?;
-        let paths: Result<Vec<Path>, object_store::path::Error> = file_system
-            .prefixes
-            .iter()
-            .map(|prefix| Path::parse(prefix))
-            .collect();
-
-        let paths = paths.map_err(|_| Error::NotFound)?;
-
-        let file_system_buffer = FileSystemBuffer::new(store, &paths);
-        buffer.insert(file_system_buffer);
-    }
-
-    let tables = app.register(&buffer).await?;
-
-    Ok(tables)
+    let results = app.query(&query, &state).await?;
+    Ok(results)
 }
 
 #[tauri::command]
-pub async fn query(
+pub async fn get_buffers(
     app: tauri::State<'_, Arc<Mutex<App>>>,
-    statement: String,
-) -> Result<Vec<Map<String, Value>>, Error> {
+) -> Result<Vec<BufferState>, Error> {
     let app = app.lock().await;
+    let state = app.get_state().await;
 
-    let results = app.query(&statement).await?;
-    Ok(results)
+    app.list_buffers(&state)
 }

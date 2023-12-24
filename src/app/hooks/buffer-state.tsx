@@ -1,8 +1,6 @@
 import { useState } from "react";
 import { Metadata } from "../lib/messages";
 import { Content, ContentKind } from "./contents";
-import { RegisterBuffer } from "../lib/messages/buffer";
-import { invoke } from "@tauri-apps/api/tauri";
 
 export interface BufferStateItem {
   id: string;
@@ -15,26 +13,18 @@ export const getId = (storeId: number, prefix: string) => {
   return `store:${storeId}:prefix:${prefix}`;
 };
 
-export const register = async (
-  state: Record<string, BufferStateItem>,
-): Promise<string[]> => {
-  const buffer: RegisterBuffer = {
-    file_systems: [],
-  };
-
-  for (const item of Object.values(state) as BufferStateItem[]) {
-    buffer.file_systems.push({
-      store: item.store.id,
-      prefixes: [item.prefix],
-    });
-  }
-
-  return await invoke("register_buffer", { request: buffer });
-};
+export interface BufferState {
+  items: Record<string, BufferStateItem>;
+  name: string;
+  id: string | null;
+}
 
 export const useBufferState = () => {
-  const [state, setState] = useState<Record<string, BufferStateItem>>({});
-  const [tables, setTables] = useState<string[]>([]);
+  const [state, setState] = useState<BufferState>({
+    items: {},
+    name: "",
+    id: null,
+  });
 
   const add = (
     content: Content,
@@ -56,16 +46,28 @@ export const useBufferState = () => {
     setState((prev) => {
       return {
         ...prev,
-        [id]: item,
+        items: {
+          ...prev.items,
+          [id]: item,
+        },
       };
     });
   };
 
   const remove = (id: string) => {
     setState((prev) => {
-      delete prev[id];
+      delete prev.items[id];
       return {
         ...prev,
+      };
+    });
+  };
+
+  const setName = (name: string) => {
+    setState((prev) => {
+      return {
+        ...prev,
+        name,
       };
     });
   };
@@ -88,41 +90,36 @@ export const useBufferState = () => {
     };
     setState((prev) => {
       if (id in prev) {
-        delete prev[id];
+        delete prev.items[id];
         return {
           ...prev,
         };
       } else {
-        prev[id] = item;
         return {
           ...prev,
-          [id]: item,
+          items: {
+            ...prev.items,
+            [id]: item,
+          },
         };
       }
     });
   };
 
   const reset = () => {
-    setState({});
-  };
-
-  const registerBuffer = () => {
-    register(state)
-      .then((tables) => {
-        console.log(`Registered tables`, tables);
-        setTables(tables);
-      })
-      .catch((err) => {
-        console.error(err);
-      });
+    setState({
+      name: "",
+      items: {},
+      id: null,
+    });
   };
 
   return {
     state,
     add,
+    setName,
     remove,
     toggle,
     reset,
-    register: registerBuffer,
   };
 };

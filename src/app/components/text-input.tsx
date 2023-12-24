@@ -5,12 +5,17 @@ interface TextInputProps {
   onChange: (value: string) => void;
   label: string;
   placeholder: string;
+  className?: string;
 }
 
 export const TextInput = forwardRef(
   (props: TextInputProps, ref: ForwardedRef<HTMLInputElement>) => {
     return (
-      <label className="form-control w-full">
+      <label
+        className={`form-control w-full ${
+          props.className ? props.className : ""
+        }`}
+      >
         <div className="label pb-1 pt-1">
           <span className="label-text text-xs">{props.label}</span>
         </div>
