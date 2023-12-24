@@ -1,4 +1,5 @@
 use std::collections::{HashMap, HashSet};
+use std::fmt::format;
 use std::sync::Arc;
 
 use datafusion::common::{FileType, GetExt};
@@ -108,11 +109,13 @@ impl Buffer {
                 tables.push(table);
             }
         }
-        let table_names = tables.join(", ");
-        let create_table = format!(
-            "CREATE VIEW '{}' AS SELECT * FROM '{}';",
-            table, table_names
-        );
+        let table_names: Vec<String> = tables
+            .iter()
+            .map(|name| format!("SELECT * FROM '{}'", name))
+            .collect();
+        let table_names = table_names.join(" UNION ALL ");
+
+        let create_table = format!("CREATE VIEW '{}' AS {};", table, table_names);
         let create_table_result = ctx.sql(&create_table).await;
 
         match create_table_result {

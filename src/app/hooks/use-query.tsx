@@ -5,7 +5,7 @@ export type Row = Record<string, string | number | object>;
 
 const query = async (statement: string) => {
   const rows = (await invoke("query", {
-    query: { statement, buffer: 1 }, // TODO
+    query: { statement, buffer: 3 }, // TODO
   })) as Row[];
 
   return rows;
