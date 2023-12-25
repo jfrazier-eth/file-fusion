@@ -96,11 +96,21 @@ impl Buffer {
 
             for prefix in file_system.prefixes.iter() {
                 let file_format = ParquetFormat::default().with_enable_pruning(Some(true));
+                let file_type = FileType::PARQUET;
+                let ext = file_type.get_ext();
+                let options =
+                    ListingOptions::new(Arc::new(file_format)).with_file_extension(ext.clone());
 
-                let options = ListingOptions::new(Arc::new(file_format))
-                    .with_file_extension(FileType::PARQUET.get_ext());
+                let mut path = get_path(&prefix.to_string());
 
-                let path = get_path(&prefix.to_string());
+                let is_file = path.ends_with(&ext);
+                if !is_file {
+                    if !path.ends_with("/") {
+                        // datafusion requires a `/` at the end of the path if it is a directory
+                        path.push('/');
+                    }
+                }
+
                 let file_system_name = file_system.store.metadata.name.clone();
                 let table_prefix = prefix.to_string().replace("/", ".");
                 let table = format!("{file_system_name}.{table_prefix}");
