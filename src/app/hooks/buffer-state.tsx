@@ -89,7 +89,7 @@ export const useBufferState = () => {
       prefix: content.prefix,
     };
     setState((prev) => {
-      if (id in prev) {
+      if (id in prev.items) {
         delete prev.items[id];
         return {
           ...prev,
