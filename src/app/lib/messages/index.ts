@@ -33,6 +33,25 @@ export interface CreateObjectStoreMessage {
   connection: Connection;
 }
 
-export type Messages = {
-  CreateObjectStore: CreateObjectStoreMessage;
-};
+export interface FileSystemBufferMetadata {
+  store: number;
+  prefixes: string[];
+}
+
+export interface BufferMetadata {
+  name: string;
+  common_schema: boolean;
+  file_systems: FileSystemBufferMetadata[];
+}
+
+export interface CreateBufferMessage {
+  metadata: BufferMetadata;
+}
+
+export type Messages =
+  | {
+      CreateObjectStore: CreateObjectStoreMessage;
+    }
+  | {
+      CreateBuffer: CreateBufferMessage;
+    };

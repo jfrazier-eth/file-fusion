@@ -4,11 +4,11 @@ import { FileIcon } from "../icons/file";
 import { FolderIcon } from "../icons/folder";
 import { Metadata } from "../lib/messages";
 import { StorageLink } from "./storage-link";
-import { BufferStateItem, getId } from "../hooks/buffer-state";
+import { BufferState, getId } from "../hooks/buffer-state";
 
 export function Contents(props: {
   metadata: Metadata;
-  bufferState: Record<string, BufferStateItem>;
+  bufferState: BufferState;
   onIconClick: (item: Content) => void;
 }) {
   let { query: contents } = useContents(props.metadata);
@@ -21,7 +21,7 @@ export function Contents(props: {
         const id = getId(props.metadata.id, item.prefix);
         return {
           ...item,
-          isSelected: !!props.bufferState[id],
+          isSelected: !!props.bufferState.items[id],
         };
       });
 

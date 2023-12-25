@@ -1,8 +1,11 @@
 use crate::errors::Error;
+use datafusion::execution::context::SessionContext;
+use directories::UserDirs;
 use object_store::{
     aws::AmazonS3Builder, local::LocalFileSystem, ObjectStore as ObjectStoreClient,
 };
 use std::sync::Arc;
+use url::Url;
 
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
 pub enum ObjectStoreKind {
@@ -34,11 +37,11 @@ pub struct LocalConnection {}
 
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
 pub struct RemoteConnection {
-    region: String,
-    bucket: String,
-    access_key: String,
-    access_key_secret: String,
-    endpoint: String,
+    pub region: String,
+    pub bucket: String,
+    pub access_key: String,
+    pub access_key_secret: String,
+    pub endpoint: String,
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
@@ -49,6 +52,7 @@ pub enum Connection {
 
 #[derive(Debug, Clone)]
 pub struct ObjectStore {
+    pub registered: bool,
     pub metadata: Metadata,
     pub connection: Connection,
     pub client: Arc<dyn ObjectStoreClient>,
@@ -72,9 +76,41 @@ impl ObjectStore {
         };
 
         Ok(Self {
+            registered: false,
             metadata,
             connection,
             client,
         })
     }
+
+    pub fn register(&mut self, ctx: &SessionContext) -> Result<(), Error> {
+        if self.registered {
+            return Ok(());
+        }
+        match &self.connection {
+            Connection::Local(_) => {
+                self.registered = true;
+                return Ok(());
+            }
+            Connection::Remote(connection) => {
+                let bucket_name = &connection.bucket;
+                let base_url = format!("s3://{bucket_name}");
+                let s3_url = Url::parse(&base_url)?;
+                ctx.runtime_env()
+                    .register_object_store(&s3_url, self.client.clone());
+                self.registered = true;
+                return Ok(());
+            }
+        }
+    }
+}
+
+pub fn get_home_dir() -> Result<String, Error> {
+    let user_dirs = UserDirs::new().ok_or(Error::HomeDirNotFound)?;
+    let home_dir = user_dirs.home_dir();
+    let home_dir = home_dir
+        .as_os_str()
+        .to_str()
+        .ok_or(Error::HomeDirNotFound)?;
+    Ok(String::from(home_dir))
 }

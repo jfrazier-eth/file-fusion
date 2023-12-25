@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useState } from "react";
+import { useState } from "react";
 import { Header } from "./components/header";
 import { Locations } from "./components/locations";
 import { Contents } from "./components/contents";
@@ -8,20 +8,22 @@ import { useStorage } from "./hooks/storage";
 import { useParams } from "./hooks/params";
 import { useKeyBindings } from "./hooks/key-bindings";
 import { NewStorageModal } from "./components/new-storage-modal";
-import { Messages } from "./lib/messages";
+import { CreateBufferMessage, FileSystemBufferMetadata } from "./lib/messages";
 import { StagingBuffer } from "./components/staging-buffer";
 import { useBufferState } from "./hooks/buffer-state";
 import { useRouter } from "next/navigation";
+import { SQLEditor } from "./components/sql-editor";
+import { Modal } from "./components/modal";
+import { useBuffers } from "./hooks/buffers";
 
 export default function Home() {
   let [isNewStorageModalOpen, setIsNewStorageModalOpen] = useState(false);
+  let [isEditorOpen, setIsEditorOpen] = useState(false);
   const params = useParams();
   const { query: storage, mutation: storageMutation } = useStorage(params);
-  const { state, remove, toggle, reset } = useBufferState();
-  const toggleNewStorageModal = useCallback(
-    () => setIsNewStorageModalOpen((prev) => !prev),
-    [setIsNewStorageModalOpen],
-  );
+  const { state, remove, toggle, reset, setName } = useBufferState();
+  const { query: buffersQuery, mutation: buffersMutation } = useBuffers();
+
   const router = useRouter();
   useKeyBindings({
     bindings: [
@@ -44,7 +46,14 @@ export default function Home() {
         metaKey: true,
         key: "n",
         description: "Toggle the new storage modal",
-        onPress: toggleNewStorageModal,
+        onPress: () => setIsNewStorageModalOpen((prev) => !prev),
+      },
+      {
+        name: "Toggle query modal",
+        metaKey: true,
+        key: "f",
+        description: "Toggle the query modal",
+        onPress: () => setIsEditorOpen((prev) => !prev),
       },
       {
         name: "Clear buffer",
@@ -92,16 +101,44 @@ export default function Home() {
           />
         </div>
 
-        <StagingBuffer state={state} remove={remove} reset={reset} />
+        <StagingBuffer
+          state={state}
+          remove={remove}
+          reset={reset}
+          setName={setName}
+          openEditor={() => setIsEditorOpen(true)}
+          save={() => {
+            const message: CreateBufferMessage = {
+              metadata: {
+                name: state.name,
+                common_schema: true, // TODO
+                file_systems: Object.values(state.items).map((item) => {
+                  const meta: FileSystemBufferMetadata = {
+                    store: item.store.id,
+                    prefixes: [item.prefix],
+                  };
+                  return meta;
+                }),
+              },
+            };
+
+            buffersMutation.mutate(message);
+          }}
+        />
       </div>
+      <Modal
+        isOpen={isEditorOpen}
+        close={() => setIsEditorOpen(false)}
+        title="Editor"
+        className="w-full min-w-[90%] min-h-[90%] m-2"
+      >
+        <SQLEditor buffers={buffersQuery} />
+      </Modal>
       <NewStorageModal
         isOpen={isNewStorageModalOpen}
         close={() => setIsNewStorageModalOpen(false)}
         save={(value) => {
-          const message: Messages = {
-            CreateObjectStore: value,
-          };
-          storageMutation.mutate(message);
+          storageMutation.mutate(value);
         }}
       />
     </div>

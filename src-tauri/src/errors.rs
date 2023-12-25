@@ -1,12 +1,7 @@
-use thiserror::Error;
-
-#[derive(Debug, Error)]
+#[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error("home dir not found")]
     HomeDirNotFound,
-
-    #[error("cannot list contents of a file")]
-    CannotListContentsOfAFile,
 
     #[error("failed to deserialize events")]
     FailedToDeserializeEvents,
@@ -20,11 +15,8 @@ pub enum Error {
     #[error("failed to get state lock")]
     FailedToGetStateLock,
 
-    #[error("failed to parse path")]
-    ParsePath,
-
-    #[error("not found")]
-    NotFound,
+    #[error("not found `{0}`")]
+    NotFound(String),
 
     #[error(transparent)]
     Io(#[from] std::io::Error),
@@ -34,6 +26,15 @@ pub enum Error {
 
     #[error(transparent)]
     ObjectStore(#[from] object_store::Error),
+
+    #[error(transparent)]
+    UrlParseError(#[from] url::ParseError),
+
+    #[error(transparent)]
+    DataFusionError(#[from] datafusion::error::DataFusionError),
+
+    #[error(transparent)]
+    ArrowError(#[from] datafusion::arrow::error::ArrowError),
 }
 
 impl serde::Serialize for Error {
