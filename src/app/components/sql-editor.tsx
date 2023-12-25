@@ -12,8 +12,12 @@ interface Props {
 }
 
 export const SQLEditor = ({ buffers }: Props) => {
-  const { statement, setStatement, run, results } = useQuery(
+  const items: number[] = buffers.isSuccess
+    ? buffers.data.map((item) => item.id)
+    : [];
+  const { statement, setStatement, run, results, buffer, setBuffer } = useQuery(
     "SELECT * FROM data;",
+    items,
   );
 
   if (buffers.isError) {
@@ -28,14 +32,23 @@ export const SQLEditor = ({ buffers }: Props) => {
     <div className="flex flex-col">
       <div className="flex flex-col w-full">
         <div>
-          Buffers: {buffers.data.length}
-          {buffers.data.map((item, index) => {
-            return (
-              <div key={item.id}>
-                {index + 1}: {item.name}
-              </div>
-            );
-          })}
+          Buffer:
+          <select
+            className="select select-sm ml-2 mb-2 w-full max-w-xs rounded-none "
+            onChange={(e) => {
+              const value = parseInt(e.target.value, 10);
+              setBuffer(value);
+            }}
+            value={buffer}
+          >
+            {buffers.data.map((item, index) => {
+              return (
+                <option key={item.id} value={item.id}>
+                  {index + 1}: {item.name}
+                </option>
+              );
+            })}
+          </select>
         </div>
         <AceEditor
           mode="sql"

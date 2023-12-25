@@ -3,22 +3,23 @@ import { useState } from "react";
 
 export type Row = Record<string, string | number | object>;
 
-const query = async (statement: string) => {
+const query = async (statement: string, buffer: number) => {
   const rows = (await invoke("query", {
-    query: { statement, buffer: 3 }, // TODO
+    query: { statement, buffer },
   })) as Row[];
 
   return rows;
 };
 
-export const useQuery = (defaultValue: string) => {
+export const useQuery = (defaultValue: string, buffers: number[]) => {
   const [statement, setStatement] = useState(defaultValue);
+  const [buffer, setBuffer] = useState(buffers[0]);
 
   const [results, setResults] = useState<Row[]>([]);
 
   const run = () => {
     setResults([]);
-    query(statement)
+    query(statement, buffer)
       .then((value) => {
         setResults(value);
       })
@@ -32,5 +33,7 @@ export const useQuery = (defaultValue: string) => {
     setStatement,
     run,
     results,
+    buffer,
+    setBuffer,
   };
 };
