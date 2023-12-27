@@ -3,7 +3,6 @@ use datafusion::{
     datasource::file_format::{parquet, FileFormat},
     execution::context::SessionContext,
 };
-use futures::lock::{Mutex, MutexGuard};
 use object_store::{path::Path, ObjectMeta, ObjectStore as ObjectStoreClient};
 use serde_json::{Map, Value};
 
@@ -14,15 +13,15 @@ use crate::{
 };
 
 use std::{
-    collections::HashMap,
     fs::{create_dir_all, OpenOptions},
     io::{prelude::*, BufReader},
     path::PathBuf,
     sync::Arc,
 };
 
-use super::store::{
-    get_home_dir, Connection, LocalConnection, Metadata, ObjectStore, ObjectStoreKind,
+use super::{
+    store::{get_home_dir, Connection, LocalConnection, Metadata, ObjectStore, ObjectStoreKind},
+    Id, MutexMap,
 };
 
 #[derive(Debug, Clone)]
@@ -50,21 +49,21 @@ pub struct BufferState {
 
 #[derive(Debug, Clone)]
 pub struct State {
-    event_id: usize,
-    stores: HashMap<usize, ObjectStore>,
-    buffers: HashMap<usize, BufferState>,
-    file_system_buffers: HashMap<usize, FileSystemBufferState>,
-    prefixes: HashMap<usize, PrefixState>,
+    event_id: Id,
+    stores: MutexMap<ObjectStore>,
+    buffers: MutexMap<BufferState>,
+    file_system_buffers: MutexMap<FileSystemBufferState>,
+    prefixes: MutexMap<PrefixState>,
 }
 
 impl State {
     pub fn new() -> Self {
         Self {
-            event_id: 0,
-            stores: HashMap::new(),
-            buffers: HashMap::new(),
-            file_system_buffers: HashMap::new(),
-            prefixes: HashMap::new(),
+            event_id: Id::new(),
+            stores: MutexMap::new(),
+            buffers: MutexMap::new(),
+            file_system_buffers: MutexMap::new(),
+            prefixes: MutexMap::new(),
         }
     }
 }
@@ -75,7 +74,7 @@ pub struct Config {
 
 pub struct App {
     config: Config,
-    state: Arc<Mutex<State>>,
+    state: State,
     session: SessionContext,
 }
 
@@ -83,99 +82,47 @@ impl App {
     pub fn new(config: Config) -> Self {
         Self {
             config,
-            state: Arc::new(Mutex::new(State::new())),
+            state: State::new(),
             session: SessionContext::new(),
         }
     }
 
-    pub fn list_stores(&self, state: &MutexGuard<'_, State>) -> Result<Vec<Metadata>, Error> {
-        let stores: Vec<Metadata> = state
-            .stores
-            .iter()
-            .map(|(_, item)| item.metadata.clone())
-            .collect();
+    pub async fn list_buffers(&self) -> Vec<BufferState> {
+        let buffers: Vec<BufferState> = self.state.buffers.list().await;
 
-        Ok(stores)
+        buffers
     }
 
-    pub fn list_buffers(&self, state: &MutexGuard<'_, State>) -> Result<Vec<BufferState>, Error> {
-        let buffers: Vec<BufferState> =
-            state.buffers.iter().map(|(_, item)| item.clone()).collect();
-
-        Ok(buffers)
+    pub async fn next_event_id(&self) -> usize {
+        self.state.event_id.get_next().await
     }
 
-    pub async fn get_state(&self) -> MutexGuard<'_, State> {
-        let state = self.state.lock().await;
-
-        state
+    pub async fn next_store_id(&self) -> usize {
+        self.state.stores.get_id().await
     }
 
-    pub fn get_store(
-        &self,
-        id: &usize,
-        state: &MutexGuard<'_, State>,
-    ) -> Result<Option<ObjectStore>, Error> {
-        let store = state.stores.get(&id).map(|store| store.clone());
-        Ok(store)
+    pub async fn next_buffer_id(&self) -> usize {
+        self.state.buffers.get_id().await
     }
 
-    pub fn get_metadata(
-        &self,
-        id: &usize,
-        state: &MutexGuard<'_, State>,
-    ) -> Result<Option<Metadata>, Error> {
-        self.get_store(id, state)
-            .map(|store| store.map(|store| store.metadata))
+    pub async fn next_file_system_byffer_id(&self) -> usize {
+        self.state.file_system_buffers.get_id().await
     }
 
-    pub fn next_event_id(state: &MutexGuard<'_, State>) -> usize {
-        state.event_id + 1
+    pub async fn next_prefix_id(&self) -> usize {
+        self.state.prefixes.get_id().await
     }
 
-    pub fn create_store_id(state: &MutexGuard<'_, State>) -> Result<usize, Error> {
-        let max = state.stores.keys().max();
-        let id = match max {
-            Some(value) => value + 1,
-            None => 1,
-        };
-
-        Ok(id)
+    pub async fn get_store(&self, id: &usize) -> Option<ObjectStore> {
+        self.state.stores.get(id).await
     }
 
-    pub fn create_buffer_id(state: &MutexGuard<'_, State>) -> Result<usize, Error> {
-        let max = state.buffers.keys().max();
-        let id = match max {
-            Some(value) => value + 1,
-            None => 1,
-        };
-
-        Ok(id)
-    }
-
-    pub fn create_file_system_buffer_id(state: &MutexGuard<'_, State>) -> Result<usize, Error> {
-        let max = state.file_system_buffers.keys().max();
-        let id = match max {
-            Some(value) => value + 1,
-            None => 1,
-        };
-
-        Ok(id)
-    }
-
-    pub fn create_prefix_id(state: &MutexGuard<'_, State>) -> Result<usize, Error> {
-        let max = state.prefixes.keys().max();
-        let id = match max {
-            Some(value) => value + 1,
-            None => 1,
-        };
-
-        Ok(id)
+    pub async fn list_stores(&self) -> Vec<ObjectStore> {
+        self.state.stores.list().await
     }
 
     pub async fn sync(&self) -> Result<(), Error> {
         let events_file = self.config.events_file.clone();
-        let mut state = self.get_state().await;
         if let Some(dir) = events_file.parent() {
             if !dir.exists() {
                 create_dir_all(dir)?;
@@ -193,18 +140,18 @@ impl App {
             let line = line?;
             let event = serde_json::from_str::<Events>(&line);
             match event {
-                Ok(event) => self.update(&event, &mut state)?,
+                Ok(event) => self.update(&event).await?,
                 Err(_) => return Err(Error::FailedToDeserializeEvents),
             }
         }
 
-        let num_stores = state.stores.len();
+        let num_stores = self.state.stores.len().await;
 
         if num_stores == 0 {
-            let id = App::create_store_id(&state)?;
-
+            let id = self.next_store_id().await;
+            let event_id = self.next_event_id().await;
             let default_store_event = Events::CreateObjectStore(store::Create {
-                id: App::next_event_id(&mut state),
+                id: event_id,
                 metadata: Metadata {
                     id,
                     name: String::from("Local"),
@@ -213,18 +160,14 @@ impl App {
                 },
                 connection: Connection::Local(LocalConnection {}),
             });
-            self.save(&default_store_event, &mut state).await?;
+            self.save(&default_store_event).await?;
         }
 
         Ok(())
     }
 
-    pub async fn save(
-        &self,
-        event: &Events,
-        state: &mut MutexGuard<'_, State>,
-    ) -> Result<(), Error> {
-        self.update(event, state)?;
+    pub async fn save(&self, event: &Events) -> Result<(), Error> {
+        self.update(event).await?;
 
         let events_file = self.config.events_file.clone();
 
@@ -241,7 +184,7 @@ impl App {
         writeln!(file, "{}", event).map_err(|err| err.into())
     }
 
-    fn update(&self, event: &Events, state: &mut MutexGuard<'_, State>) -> Result<(), Error> {
+    async fn update(&self, event: &Events) -> Result<(), Error> {
         match event {
             Events::CreateObjectStore(event) => {
                 let id = event.id;
@@ -250,14 +193,13 @@ impl App {
 
                 let mut store = ObjectStore::new(metadata, connection)?;
                 store.register(&self.session)?;
-                state.event_id = event.id;
-                state.stores.insert(id, store);
+                self.state.event_id.update(event.id).await;
+                self.state.stores.insert(id, store).await;
             }
             Events::CreateBuffer(event) => {
-                let id = event.id;
-                state.event_id = id;
+                self.state.event_id.update(event.id).await;
 
-                let buffer_id = App::create_buffer_id(&state)?;
+                let buffer_id = self.next_buffer_id().await;
                 let metadata = event.metadata.clone();
                 let mut buffer_state = BufferState {
                     id: buffer_id,
@@ -267,19 +209,23 @@ impl App {
                 };
 
                 for item in metadata.file_systems.into_iter() {
-                    let file_system_buffer_id: usize = App::create_file_system_buffer_id(&state)?;
+                    let file_system_buffer_id: usize =
+                        self.state.file_system_buffers.get_id().await;
 
                     let mut prefix_ids = Vec::new();
                     for prefix in item.prefixes {
                         let path = Path::parse(prefix)?;
-                        let prefix_id = App::create_prefix_id(&state)?;
+                        let prefix_id = self.state.prefixes.get_id().await;
                         let prefix_state = PrefixState {
                             id: prefix_id,
                             file_system_buffer: file_system_buffer_id,
                             path,
                         };
                         prefix_ids.push(prefix_state.id);
-                        state.prefixes.insert(prefix_state.id, prefix_state);
+                        self.state
+                            .prefixes
+                            .insert(prefix_state.id, prefix_state)
+                            .await;
                     }
 
                     let file_system_buffer = FileSystemBufferState {
@@ -291,68 +237,68 @@ impl App {
 
                     buffer_state.file_systems.push(file_system_buffer_id);
 
-                    state
+                    self.state
                         .file_system_buffers
-                        .insert(file_system_buffer_id, file_system_buffer);
+                        .insert(file_system_buffer_id, file_system_buffer)
+                        .await;
                 }
 
-                state.buffers.insert(buffer_state.id, buffer_state);
+                self.state
+                    .buffers
+                    .insert(buffer_state.id, buffer_state)
+                    .await;
             }
         }
 
         Ok(())
     }
 
-    fn get_buffer(&self, buffer_id: usize, state: &MutexGuard<'_, State>) -> Result<Buffer, Error> {
-        let buffer_state = state
+    async fn get_buffer(&self, buffer_id: &usize) -> Result<Buffer, Error> {
+        let buffer_state = self
+            .state
             .buffers
-            .get(&buffer_id)
-            .ok_or(Error::NotFound(format!("buffer with id {}", &buffer_id)))
-            .cloned()?;
+            .get(buffer_id)
+            .await
+            .ok_or(Error::NotFound(format!("buffer with id {}", &buffer_id)))?;
 
-        let files_system_buffer_states: Result<Vec<&FileSystemBufferState>, Error> = buffer_state
-            .file_systems
-            .iter()
-            .map(|id| {
-                let item = state
-                    .file_system_buffers
-                    .get(id)
-                    .to_owned()
-                    .ok_or(Error::NotFound(format!(
-                        "file system buffer with id {} for buffer {}",
-                        id, buffer_id
-                    )));
-                item
-            })
-            .collect();
+        let mut files_system_buffer_states = Vec::new();
+        for file_system_id in buffer_state.file_systems {
+            let file_system = self.state.file_system_buffers.get(&file_system_id).await;
+            let file_system = file_system.ok_or(Error::NotFound(format!(
+                "file system buffer with id {} for buffer {}",
+                file_system_id, buffer_id
+            )))?;
+
+            files_system_buffer_states.push(file_system);
+        }
 
         let mut buffer = Buffer::new(&buffer_state.id, &buffer_state.name);
 
-        let files_system_buffer_states = files_system_buffer_states?;
-
         for file_system_buffer_state in files_system_buffer_states {
             let store = self
-                .get_store(&file_system_buffer_state.store, state)?
+                .state
+                .stores
+                .get(&file_system_buffer_state.store)
+                .await
                 .ok_or(Error::NotFound(format!(
                     "store with id {}",
                     &file_system_buffer_state.store
                 )))?;
 
-            let prefixes: Result<Vec<&PrefixState>, Error> = file_system_buffer_state
-                .prefixes
-                .iter()
-                .map(|prefix| {
-                    let prefix = state
-                        .prefixes
-                        .get(prefix)
-                        .ok_or(Error::NotFound(format!("prefix with id {}", prefix)));
-                    prefix
-                })
-                .collect();
+            let mut paths = Vec::new();
 
-            let prefixes: Vec<Path> = prefixes?.iter().map(|prefix| prefix.path.clone()).collect();
+            for prefix in file_system_buffer_state.prefixes {
+                let prefix = self
+                    .state
+                    .prefixes
+                    .get(&prefix)
+                    .await
+                    .ok_or(Error::NotFound(format!("prefix with id {}", prefix)))?;
 
-            let file_system_buffer = FileSystemBuffer::new(store, &prefixes);
+                paths.push(prefix.path);
+            }
+
+            let file_system_buffer = FileSystemBuffer::new(store, &paths);
 
             buffer.insert(file_system_buffer);
         }
@@ -360,12 +306,8 @@ impl App {
         Ok(buffer)
     }
 
-    pub async fn query(
-        &self,
-        query: &Query,
-        state: &MutexGuard<'_, State>,
-    ) -> Result<Vec<Map<String, Value>>, Error> {
-        let buffer = self.get_buffer(query.buffer, state)?;
+    pub async fn query(&self, query: &Query) -> Result<Vec<Map<String, Value>>, Error> {
+        let buffer = self.get_buffer(&query.buffer).await?;
 
         let result = buffer.register(buffer.get_name(), &self.session).await;
         match result {

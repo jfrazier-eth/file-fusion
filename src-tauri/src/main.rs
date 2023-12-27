@@ -6,7 +6,6 @@ use app::{
     errors::Error,
     state::{store::get_home_dir, App, Config},
 };
-use futures::lock::Mutex;
 use std::{
     path::{Path as StdPath, PathBuf},
     sync::Arc,
@@ -24,7 +23,7 @@ async fn main() -> Result<(), Error> {
     println!("syncing from persistent storage...");
     app.sync().await?;
     println!("synced!");
-    let app = Arc::new(Mutex::new(app));
+    let app = Arc::new(app);
 
     tauri::Builder::default()
         .manage(app)
