@@ -360,6 +360,7 @@ impl App {
         let batches: Vec<_> = batches.iter().collect();
 
         let list = arrow::json::writer::record_batches_to_json_rows(&batches[..])?;
+
         Ok(list)
     }
 

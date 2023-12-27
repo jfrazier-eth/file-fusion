@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use object_store::path::Path;
 use serde_json::{Map, Value};
+use tracing::{debug, error, info, warn};
 
 use crate::{
     content::{Content, Contents},
@@ -37,7 +38,15 @@ pub async fn contents(
     let store = app
         .get_store(&id)
         .await
-        .ok_or(Error::NotFound(format!("object store with id {}", id)))?;
+        .ok_or(Error::NotFound(format!("object store with id {}", id)));
+
+    let store = match store {
+        Ok(store) => store,
+        Err(e) => {
+            warn!(?e, "Failed to get store");
+            return Err(e);
+        }
+    };
 
     let prefix = {
         if prefix.len() == 0 {
@@ -48,7 +57,15 @@ pub async fn contents(
     };
     let path = Path::parse(&prefix)?;
 
-    let list = store.client.list_with_delimiter(Some(&path)).await?;
+    let list = store.client.list_with_delimiter(Some(&path)).await;
+
+    let list = match list {
+        Ok(list) => list,
+        Err(e) => {
+            error!(?e, path=?path, "Failed to list contents");
+            return Err(Error::ObjectStore(e));
+        }
+    };
 
     let files: Vec<Content> = list
         .objects
@@ -65,11 +82,22 @@ pub async fn contents(
     items.sort_by(|a, b| a.prefix.cmp(&b.prefix));
 
     if items.len() == 0 {
-        let object = store.client.get(&path).await?;
-        let meta = object.meta;
-        let schema = app.infer_schema(&store.client, &[meta]).await?;
-        println!("Found Schema {:?}", schema);
-        dbg!(schema);
+        debug!("no items found at this path, checking if it is a file");
+        let object = store.client.get(&path).await;
+
+        let object = match object {
+            Ok(object) => object,
+            Err(e) => {
+                error!(path=%path, "failed to get item at path");
+                return Err(Error::ObjectStore(e));
+            }
+        };
+
+        todo!(); // Support displaying file contents
+                 // let meta = object.meta;
+                 // let schema = app.infer_schema(&store.client, &[meta]).await;
+                 // debug!("Found Schema {:?}", schema);
+                 // dbg!(schema);
     }
 
     let contents = Contents {
@@ -107,7 +135,13 @@ pub async fn update(app: tauri::State<'_, Arc<App>>, message: Messages) -> Resul
             event
         }
     };
-    app.save(&event).await
+    let result = app.save(&event).await;
+
+    if let Err(ref e) = result {
+        error!(?e, "failed to save event");
+    }
+
+    result
 }
 
 #[tauri::command]
@@ -180,8 +214,18 @@ pub async fn query(
     app: tauri::State<'_, Arc<App>>,
     query: Query,
 ) -> Result<Vec<Map<String, Value>>, Error> {
-    let results = app.query(&query).await?;
-    Ok(results)
+    let results = app.query(&query).await;
+
+    match results {
+        Ok(results) => {
+            info!(num_rows = results.len(), "Completed query");
+            Ok(results)
+        }
+        Err(e) => {
+            error!(?e, "Failed to complete query");
+            Err(e)
+        }
+    }
 }
 
 #[tauri::command]
