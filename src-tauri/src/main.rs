@@ -5,6 +5,7 @@ use app::{
     commands,
     errors::Error,
     state::{store::get_home_dir, App, Config},
+    tracing::{get_subscriber, init_subscriber},
 };
 use std::{
     path::{Path as StdPath, PathBuf},
@@ -15,14 +16,17 @@ use tauri::Manager;
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
-    let base = get_home_dir().unwrap();
-    let base = PathBuf::try_from(base).unwrap();
+    let subscriber = get_subscriber("file_fusion".into(), "info".into());
+    init_subscriber(subscriber).expect("failed to init subscriber");
+
+    let base = get_home_dir().expect("failed to get home dir");
+    let base = PathBuf::try_from(base).expect("failed to parse home dir");
     let events_file = base.join(StdPath::new(".config/file-fusion/events"));
+
     let config = Config { events_file };
     let app = App::new(config);
-    println!("syncing from persistent storage...");
     app.sync().await?;
-    println!("synced!");
+
     let app = Arc::new(app);
 
     tauri::Builder::default()

@@ -5,6 +5,7 @@ use datafusion::{
 };
 use object_store::{path::Path, ObjectMeta, ObjectStore as ObjectStoreClient};
 use serde_json::{Map, Value};
+use tracing::{debug, info, warn};
 
 use crate::{
     errors::Error,
@@ -13,6 +14,7 @@ use crate::{
 };
 
 use std::{
+    fmt,
     fs::{create_dir_all, OpenOptions},
     io::{prelude::*, BufReader},
     path::PathBuf,
@@ -68,6 +70,7 @@ impl State {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct Config {
     pub events_file: PathBuf,
 }
@@ -76,6 +79,12 @@ pub struct App {
     config: Config,
     state: State,
     session: SessionContext,
+}
+
+impl fmt::Debug for App {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("App").field("config", &self.config).finish()
+    }
 }
 
 impl App {
@@ -87,44 +96,57 @@ impl App {
         }
     }
 
+    #[tracing::instrument(name = "listing buffers", skip(self))]
     pub async fn list_buffers(&self) -> Vec<BufferState> {
         let buffers: Vec<BufferState> = self.state.buffers.list().await;
 
         buffers
     }
 
+    #[tracing::instrument(name = "getting next event id", skip(self))]
     pub async fn next_event_id(&self) -> usize {
         self.state.event_id.get_next().await
     }
 
+    #[tracing::instrument(name = "getting next store id", skip(self))]
     pub async fn next_store_id(&self) -> usize {
         self.state.stores.get_id().await
     }
 
+    #[tracing::instrument(name = "getting next buffer id", skip(self))]
     pub async fn next_buffer_id(&self) -> usize {
         self.state.buffers.get_id().await
     }
 
-    pub async fn next_file_system_byffer_id(&self) -> usize {
+    #[tracing::instrument(name = "getting next file system buffer id", skip(self))]
+    pub async fn next_file_system_buffer_id(&self) -> usize {
         self.state.file_system_buffers.get_id().await
     }
 
+    #[tracing::instrument(name = "getting next prefix id", skip(self))]
     pub async fn next_prefix_id(&self) -> usize {
         self.state.prefixes.get_id().await
     }
 
+    #[tracing::instrument(name = "getting object store", skip(self), fields(
+        id = %id
+    ))]
     pub async fn get_store(&self, id: &usize) -> Option<ObjectStore> {
         self.state.stores.get(id).await
     }
 
+    #[tracing::instrument(name = "listing object stores", skip(self))]
     pub async fn list_stores(&self) -> Vec<ObjectStore> {
         self.state.stores.list().await
     }
 
+    #[tracing::instrument(name = "syncing app state", skip(self))]
     pub async fn sync(&self) -> Result<(), Error> {
         let events_file = self.config.events_file.clone();
+        debug!(file = events_file.to_str().unwrap_or(""), "syncing");
         if let Some(dir) = events_file.parent() {
             if !dir.exists() {
+                info!(dir = dir.to_str().unwrap_or(""), "creating config dir");
                 create_dir_all(dir)?;
             }
         }
@@ -146,8 +168,10 @@ impl App {
         }
 
         let num_stores = self.state.stores.len().await;
+        debug!(num_stores, "loaded object stores");
 
         if num_stores == 0 {
+            debug!("no object stores found, creating default object store");
             let id = self.next_store_id().await;
             let event_id = self.next_event_id().await;
             let default_store_event = Events::CreateObjectStore(store::Create {
@@ -166,6 +190,7 @@ impl App {
         Ok(())
     }
 
+    #[tracing::instrument(name = "saving event", skip(self, event), fields(event = ?event))]
     pub async fn save(&self, event: &Events) -> Result<(), Error> {
         self.update(event).await?;
 
@@ -181,9 +206,11 @@ impl App {
             Ok(event) => event,
             Err(_) => return Err(Error::FailedToSerializeEvents),
         };
+
         writeln!(file, "{}", event).map_err(|err| err.into())
     }
 
+    #[tracing::instrument(name = "updating state with event", skip(self, event), fields(event = ?event))]
     async fn update(&self, event: &Events) -> Result<(), Error> {
         match event {
             Events::CreateObjectStore(event) => {
@@ -253,6 +280,7 @@ impl App {
         Ok(())
     }
 
+    #[tracing::instrument(name = "getting buffer", skip(self))]
     async fn get_buffer(&self, buffer_id: &usize) -> Result<Buffer, Error> {
         let buffer_state = self
             .state
@@ -306,16 +334,19 @@ impl App {
         Ok(buffer)
     }
 
+    #[tracing::instrument(name = "executing query", skip(self), fields(
+        query = ?query
+    ))]
     pub async fn query(&self, query: &Query) -> Result<Vec<Map<String, Value>>, Error> {
         let buffer = self.get_buffer(&query.buffer).await?;
 
         let result = buffer.register(buffer.get_name(), &self.session).await;
         match result {
             Ok(tables) => {
-                println!("registered buffer! {} tables", tables.len());
+                debug!(num_tables = tables.len(), "registered buffer");
             }
             Err(e) => {
-                eprintln!("failed to register buffer. {:?}", e);
+                warn!(?e, "failed to register buffer");
             }
         }
 
@@ -332,6 +363,7 @@ impl App {
         Ok(list)
     }
 
+    #[tracing::instrument(name = "inferring schema", skip(self, client))]
     pub async fn infer_schema(
         &self,
         client: &Arc<dyn ObjectStoreClient>,
