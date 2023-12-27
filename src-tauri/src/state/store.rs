@@ -5,6 +5,7 @@ use object_store::{
     aws::AmazonS3Builder, local::LocalFileSystem, ObjectStore as ObjectStoreClient,
 };
 use std::sync::Arc;
+use tracing::{debug, info};
 use url::Url;
 
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
@@ -84,21 +85,36 @@ impl ObjectStore {
     }
 
     pub fn register(&mut self, ctx: &SessionContext) -> Result<(), Error> {
+        debug!(object_store = self.metadata.id, "registering object store");
         if self.registered {
+            debug!(
+                object_store = self.metadata.id,
+                "object store is already registered"
+            );
             return Ok(());
         }
         match &self.connection {
             Connection::Local(_) => {
                 self.registered = true;
+                info!(
+                    object_store = self.metadata.id,
+                    "registered local object store"
+                );
                 return Ok(());
             }
             Connection::Remote(connection) => {
                 let bucket_name = &connection.bucket;
                 let base_url = format!("s3://{bucket_name}");
                 let s3_url = Url::parse(&base_url)?;
+
                 ctx.runtime_env()
                     .register_object_store(&s3_url, self.client.clone());
                 self.registered = true;
+                info!(
+                    object_store = self.metadata.id,
+                    url = s3_url.to_string(),
+                    "registered remote object store"
+                );
                 return Ok(());
             }
         }

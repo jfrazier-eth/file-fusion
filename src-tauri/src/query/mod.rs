@@ -6,6 +6,7 @@ use datafusion::datasource::file_format::parquet::ParquetFormat;
 use datafusion::datasource::listing::ListingOptions;
 use datafusion::execution::context::SessionContext;
 use object_store::path::Path;
+use tracing::{debug, info, warn};
 
 use crate::errors::Error;
 use crate::state::store::{Connection, ObjectStore};
@@ -75,6 +76,15 @@ impl Buffer {
 }
 
 impl Buffer {
+    #[tracing::instrument(
+        name = "registering tables for buffer",
+        skip(table, ctx),
+        fields(
+            table = %table,
+            buffer_id = %self.id,
+            buffer_name = %self.name
+        )
+    )]
     pub async fn register(&self, table: &str, ctx: &SessionContext) -> Result<Vec<String>, Error> {
         let mut tables = Vec::new();
         for (_, file_system) in self.file_systems.iter() {
@@ -125,14 +135,15 @@ impl Buffer {
         let table_names = table_names.join(" UNION ALL ");
 
         let create_table = format!("CREATE VIEW '{}' AS {};", table, table_names);
+        debug!(table = %table, create_table = %create_table, "creating view from tables",);
         let create_table_result = ctx.sql(&create_table).await;
 
         match create_table_result {
             Ok(_) => {
-                println!("created view! {}", &table);
+                info!(table = %table, "created view table");
             }
             Err(e) => {
-                eprintln!("failed to create view. {}", e);
+                warn!(?e, table = %table, "failed to create view table");
             }
         };
 

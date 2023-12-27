@@ -14,6 +14,7 @@ use crate::{
         App, BufferState,
     },
 };
+use uuid::Uuid;
 
 #[tauri::command]
 pub fn home_dir() -> Result<String, Error> {
@@ -21,6 +22,13 @@ pub fn home_dir() -> Result<String, Error> {
 }
 
 #[tauri::command]
+#[tracing::instrument(
+    name="Command: get contents",
+    skip(app),
+    fields(
+        request=%Uuid::new_v4()
+    )
+)]
 pub async fn contents(
     app: tauri::State<'_, Arc<App>>,
     id: usize,
@@ -73,6 +81,13 @@ pub async fn contents(
 }
 
 #[tauri::command]
+#[tracing::instrument(
+    name="Command: update state",
+    skip(app),
+    fields(
+        request=%Uuid::new_v4()
+    )
+)]
 pub async fn update(app: tauri::State<'_, Arc<App>>, message: Messages) -> Result<(), Error> {
     let event: events::Events = match message {
         Messages::CreateObjectStore(message) => {
@@ -96,6 +111,13 @@ pub async fn update(app: tauri::State<'_, Arc<App>>, message: Messages) -> Resul
 }
 
 #[tauri::command]
+#[tracing::instrument(
+    name="Command: get storages",
+    skip(app),
+    fields(
+        request=%Uuid::new_v4()
+    )
+)]
 pub async fn storages(app: tauri::State<'_, Arc<App>>) -> Result<Vec<Metadata>, Error> {
     let stores = app.list_stores().await;
     let metadata = stores.iter().map(|store| store.metadata.clone()).collect();
@@ -103,6 +125,13 @@ pub async fn storages(app: tauri::State<'_, Arc<App>>) -> Result<Vec<Metadata>, 
 }
 
 #[tauri::command]
+#[tracing::instrument(
+    name="Command: get storage",
+    skip(app),
+    fields(
+        request=%Uuid::new_v4()
+    )
+)]
 pub async fn storage<'a>(
     app: tauri::State<'_, Arc<App>>,
     id: Option<usize>,
@@ -140,6 +169,13 @@ pub async fn storage<'a>(
 }
 
 #[tauri::command]
+#[tracing::instrument(
+    name="Command: execute query",
+    skip(app),
+    fields(
+        request=%Uuid::new_v4()
+    )
+)]
 pub async fn query(
     app: tauri::State<'_, Arc<App>>,
     query: Query,
@@ -149,6 +185,13 @@ pub async fn query(
 }
 
 #[tauri::command]
+#[tracing::instrument(
+    name="Command: get buffers",
+    skip(app),
+    fields(
+        request=%Uuid::new_v4()
+    )
+)]
 pub async fn get_buffers(app: tauri::State<'_, Arc<App>>) -> Result<Vec<BufferState>, Error> {
     let buffers = app.list_buffers().await;
 
