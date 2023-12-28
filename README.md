@@ -6,10 +6,11 @@ Powered by [DataFusion](https://github.com/apache/arrow-datafusion).
 ## Features
 * View/explore the structure of a file system (local or remote)
 * Connect to remote file systems (S3 compatible object stores)
-* (In Progress) Write SQL queries
-* (In Progress) Execute SQL queries over selected files
+* Select files/dirs to create a table from
+* View the schema of your data
+* Query the tables you've created using SQL
 * (Planned) Copy files across files systems
-* (Planned) View files, schemas, and other metadata
+* (Planned) View files and metadata
 
 ## Development
 * This is a [tauri](https://tauri.app/) desktop application that utilizes Next.js for the UI
