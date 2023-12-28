@@ -1,5 +1,5 @@
 # File Fusion 🚧 Under Construction 🚧
-* A file explorer for data lakes
+* A file explorer for data warehouses
 
 Powered by [DataFusion](https://github.com/apache/arrow-datafusion).
 
