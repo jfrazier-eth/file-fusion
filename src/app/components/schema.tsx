@@ -48,6 +48,19 @@ export const Schema = (props: Props) => {
                 </div>
               </div>
             );
+          } else if ("Timestamp" in item.data_type) {
+            let precision = item.data_type.Timestamp[0];
+            return (
+              <div
+                key={item.name}
+                className="flex flex-row justify-between my-0.5"
+              >
+                <div>{item.name}</div>
+                <div className="bg-neutral py-0.5 px-1 rounded-sm">
+                  {precision}
+                </div>
+              </div>
+            );
           }
 
           console.warn("unknown data type", item.data_type);

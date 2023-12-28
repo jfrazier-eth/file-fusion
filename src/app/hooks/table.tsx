@@ -12,6 +12,9 @@ export type DataType =
         name: string;
         nullable: boolean;
       };
+    }
+  | {
+      Timestamp: [string, null | unknown];
     };
 
 export interface Table {
