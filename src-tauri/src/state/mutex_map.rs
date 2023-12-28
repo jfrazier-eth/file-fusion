@@ -74,6 +74,23 @@ impl<T: Clone> MutexMap<T> {
         item
     }
 
+    pub async fn get_or_insert<F>(&self, id: &usize, new: F) -> T
+    where
+        F: Fn() -> T,
+    {
+        let mut lock = self.get_lock().await;
+        let value = lock.get(id);
+
+        match value {
+            Some(value) => value.clone(),
+            None => {
+                let value = new();
+                lock.insert(id.clone(), value.clone());
+                value
+            }
+        }
+    }
+
     pub async fn list(&self) -> Vec<T> {
         let items = {
             let lock = self.get_lock().await;

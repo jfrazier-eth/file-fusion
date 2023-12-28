@@ -12,6 +12,7 @@ use crate::{
     query::Query,
     state::{
         store::{get_home_dir, Metadata},
+        table::Table,
         App, BufferState,
     },
 };
@@ -240,4 +241,22 @@ pub async fn get_buffers(app: tauri::State<'_, Arc<App>>) -> Result<Vec<BufferSt
     let buffers = app.list_buffers().await;
 
     Ok(buffers)
+}
+
+#[tauri::command]
+#[tracing::instrument(
+    name="Command: get table",
+    skip(app),
+    fields(
+        request=%Uuid::new_v4()
+    )
+)]
+pub async fn get_table(app: tauri::State<'_, Arc<App>>, id: usize) -> Result<Table, Error> {
+    let table = app.get_table(&id).await;
+
+    if let Err(e) = &table {
+        error!(?e, table = id, "failed to get table");
+    }
+
+    table
 }
