@@ -381,6 +381,41 @@ impl App {
             .await
             .map_err(|e| Error::DataFusionError(e))?;
 
+        // df.describe()
+        // df.explain(verbose, analyze)
+        // df.create_physical_plan()
+        // let logical_plan = df.logical_plan();
+
+        // let display = logical_plan.display();
+        // println!(
+        //     "LOGICAL PLAN UNOPTIMIZED
+        //     {}",
+        //     display
+        // );
+        // let logical_plan = self.session.optimize(logical_plan)?;
+        // let display = logical_plan.display();
+        // println!(
+        //     "LOGICAL PLAN OPTIMIZED
+        //     {}",
+        //     display
+        // );
+        // let physical_plan = self.session.create_physical_plan(&logical_plan).await?;
+        // let display = physical_plan.clone();
+        // println!(
+        //     "PHYSICAL PLAN
+        //     {:?}",
+        //     display
+        // );
+        // physical_plan.schema() // is this the output schema?
+        // let partitions = physical_plan.output_partitioning();
+        // physical_plan.execute(partition, context)
+        // let stats = physical_plan.statistics()?;
+        // println!(
+        //     "STATS
+        //     {:?}",
+        //     stats
+        // );
+
         let batches = df.collect().await?;
         let batches: Vec<_> = batches.iter().collect();
 

@@ -228,9 +228,39 @@ impl Buffer {
             }
         }
 
+        // load the schema for the case where the prefix is a file instead of a directory
+        let item = file_system.store.client.get(prefix).await?;
+        let item = item.meta;
+        let format = parquet::ParquetFormat::default();
+        let objects = &[item.clone()];
+        let schema = format
+            .infer_schema(session_state, &file_system.store.client, objects)
+            .await;
+
+        match schema {
+            Ok(schema) => {
+                info!(item=?item, "inferred schema for object");
+
+                {
+                    let mut lock = self.schema.lock().await;
+                    *lock = Some(schema.clone());
+                }
+                return Ok(schema);
+            }
+            Err(e) => {
+                warn!(
+                    ?e,
+                    store = file_system.store.metadata.id,
+                    prefix = ?prefix,
+                    item = ?item,
+                    "failed to infer schema for object"
+                );
+            }
+        }
+
         Err(Error::NotFound(format!(
-            "failed to find schema for file system {} buffer {}",
-            file_system.store.metadata.id, self.id
+            "failed to find schema for file system {} buffer {} prefix {}",
+            file_system.store.metadata.id, self.id, prefix
         )))
     }
 
