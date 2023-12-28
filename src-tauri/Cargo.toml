@@ -23,7 +23,7 @@ directories = "5.0.1"
 rand = "0.8.5"
 object_store = { version = "0.8.0", features = ["aws"] }
 futures = "0.3.29"
-datafusion = "34.0.0"
+datafusion = { version = "34.0.0", features = ["serde"] }
 url = "2.5.0"
 tokio = { version = "1.35.1", features = ["full"] }
 tracing = "0.1.40"

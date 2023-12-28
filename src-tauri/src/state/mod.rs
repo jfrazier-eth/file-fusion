@@ -5,3 +5,4 @@ pub use app::*;
 pub mod events;
 pub use mutex_map::{Id, MutexMap};
 pub mod store;
+pub mod table;

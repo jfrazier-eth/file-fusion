@@ -130,7 +130,7 @@ export default function Home() {
         isOpen={isEditorOpen}
         close={() => setIsEditorOpen(false)}
         title="Editor"
-        className="w-full min-w-[90%] min-h-[90%] m-2"
+        className="w-full min-w-[90%] min-h-[90%] m-2 max-h-90%"
       >
         <SQLEditor buffers={buffersQuery} />
       </Modal>

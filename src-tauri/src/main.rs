@@ -39,6 +39,7 @@ async fn main() -> Result<(), Error> {
             commands::update,
             commands::query,
             commands::get_buffers,
+            commands::get_table,
         ])
         .setup(|app| {
             #[cfg(debug_assertions)] // only include this code on debug builds

@@ -3,6 +3,7 @@ use datafusion::{
     datasource::file_format::{parquet, FileFormat},
     execution::context::SessionContext,
 };
+use futures::lock::Mutex;
 use object_store::{path::Path, ObjectMeta, ObjectStore as ObjectStoreClient};
 use serde_json::{Map, Value};
 use tracing::{debug, info, warn};
@@ -23,6 +24,7 @@ use std::{
 
 use super::{
     store::{get_home_dir, Connection, LocalConnection, Metadata, ObjectStore, ObjectStoreKind},
+    table::Table,
     Id, MutexMap,
 };
 
@@ -56,6 +58,7 @@ pub struct State {
     buffers: MutexMap<BufferState>,
     file_system_buffers: MutexMap<FileSystemBufferState>,
     prefixes: MutexMap<PrefixState>,
+    schemas: MutexMap<Arc<Mutex<Option<Arc<Schema>>>>>,
 }
 
 impl State {
@@ -66,6 +69,7 @@ impl State {
             buffers: MutexMap::new(),
             file_system_buffers: MutexMap::new(),
             prefixes: MutexMap::new(),
+            schemas: MutexMap::new(),
         }
     }
 }
@@ -280,6 +284,15 @@ impl App {
         Ok(())
     }
 
+    async fn get_schema(&self, buffer_id: &usize) -> Arc<Mutex<Option<Arc<Schema>>>> {
+        let schema = self
+            .state
+            .schemas
+            .get_or_insert(buffer_id, || Arc::new(Mutex::new(None)))
+            .await;
+        schema
+    }
+
     #[tracing::instrument(name = "getting buffer", skip(self))]
     async fn get_buffer(&self, buffer_id: &usize) -> Result<Buffer, Error> {
         let buffer_state = self
@@ -300,7 +313,8 @@ impl App {
             files_system_buffer_states.push(file_system);
         }
 
-        let mut buffer = Buffer::new(&buffer_state.id, &buffer_state.name);
+        let schema = self.get_schema(buffer_id).await;
+        let mut buffer = Buffer::new(&buffer_state.id, &buffer_state.name, schema);
 
         for file_system_buffer_state in files_system_buffer_states {
             let store = self
@@ -334,6 +348,17 @@ impl App {
         Ok(buffer)
     }
 
+    #[tracing::instrument(name = "getting table", skip(self), fields(
+        table = ?table
+    ))]
+    pub async fn get_table(&self, table: &usize) -> Result<Table, Error> {
+        let buffer = self.get_buffer(table).await?;
+
+        let schema = buffer.get_schema(&self.session.state()).await?;
+
+        Ok(Table::new(buffer.get_name(), schema))
+    }
+
     #[tracing::instrument(name = "executing query", skip(self), fields(
         query = ?query
     ))]
@@ -362,19 +387,5 @@ impl App {
         let list = arrow::json::writer::record_batches_to_json_rows(&batches[..])?;
 
         Ok(list)
-    }
-
-    #[tracing::instrument(name = "inferring schema", skip(self, client))]
-    pub async fn infer_schema(
-        &self,
-        client: &Arc<dyn ObjectStoreClient>,
-        objects: &[ObjectMeta],
-    ) -> Result<Arc<Schema>, Error> {
-        let format = parquet::ParquetFormat::default();
-        let schema = format
-            .infer_schema(&self.session.state(), client, objects)
-            .await?;
-
-        Ok(schema)
     }
 }

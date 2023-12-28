@@ -1,12 +1,17 @@
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
+use datafusion::arrow::datatypes::Schema;
 use datafusion::common::{FileType, GetExt};
-use datafusion::datasource::file_format::parquet::ParquetFormat;
+use datafusion::datasource::file_format::FileFormat;
+use datafusion::datasource::file_format::{parquet, parquet::ParquetFormat};
 use datafusion::datasource::listing::ListingOptions;
-use datafusion::execution::context::SessionContext;
+use datafusion::execution::context::{SessionContext, SessionState};
+use futures::lock::Mutex;
 use object_store::path::Path;
 use tracing::{debug, info, warn};
+
+use futures::StreamExt;
 
 use crate::errors::Error;
 use crate::state::store::{Connection, ObjectStore};
@@ -39,6 +44,10 @@ impl FileSystemBuffer {
 
         self.prefixes = prefixes;
     }
+
+    pub fn prefixes(&self) -> Vec<&Path> {
+        self.prefixes.iter().collect()
+    }
 }
 
 // A buffer represents a selection of paths to be queried and may be across multiple file systems
@@ -47,14 +56,16 @@ pub struct Buffer {
     id: usize,
     name: String,
     file_systems: HashMap<usize, FileSystemBuffer>,
+    schema: Arc<Mutex<Option<Arc<Schema>>>>,
 }
 
 impl Buffer {
-    pub fn new(id: &usize, name: &str) -> Self {
+    pub fn new(id: &usize, name: &str, schema: Arc<Mutex<Option<Arc<Schema>>>>) -> Self {
         Self {
             id: id.clone(),
             name: String::from(name),
             file_systems: HashMap::new(),
+            schema: schema.clone(),
         }
     }
 
@@ -78,7 +89,7 @@ impl Buffer {
 impl Buffer {
     #[tracing::instrument(
         name = "registering tables for buffer",
-        skip(table, ctx),
+        skip(self, table, ctx),
         fields(
             table = %table,
             buffer_id = %self.id,
@@ -87,6 +98,9 @@ impl Buffer {
     )]
     pub async fn register(&self, table: &str, ctx: &SessionContext) -> Result<Vec<String>, Error> {
         let mut tables = Vec::new();
+        let state = ctx.state();
+        let schema = self.get_schema(&state).await?;
+
         for (_, file_system) in self.file_systems.iter() {
             let get_path: Box<dyn Fn(&str) -> String + Send + Sync> =
                 match file_system.store.connection.clone() {
@@ -123,7 +137,7 @@ impl Buffer {
                 let file_system_name = file_system.store.metadata.name.clone();
                 let table_prefix = prefix.to_string().replace("/", ".");
                 let table = format!("{file_system_name}.{table_prefix}");
-                ctx.register_listing_table(&table, &path, options, None, None)
+                ctx.register_listing_table(&table, &path, options, Some(schema.clone()), None)
                     .await?;
                 tables.push(table);
             }
@@ -148,6 +162,92 @@ impl Buffer {
         };
 
         Ok(tables)
+    }
+
+    #[tracing::instrument(
+        name = "getting schema for buffer",
+        skip(self, session_state),
+        fields(
+            buffer_id = %self.id,
+            buffer_name = %self.name
+        )
+    )]
+    pub async fn get_schema(&self, session_state: &SessionState) -> Result<Arc<Schema>, Error> {
+        let schema = {
+            let schema = self.schema.lock().await;
+            schema.clone()
+        };
+
+        if let Some(schema) = schema {
+            return Ok(schema.clone());
+        }
+
+        let (file_system, prefix) = self.get_sample_prefix()?;
+        let mut stream = file_system.store.client.list(Some(prefix));
+
+        for item in stream.next().await {
+            match item {
+                Ok(item) => {
+                    let format = parquet::ParquetFormat::default();
+                    let objects = &[item.clone()];
+                    let schema = format
+                        .infer_schema(session_state, &file_system.store.client, objects)
+                        .await;
+
+                    match schema {
+                        Ok(schema) => {
+                            info!(item=?item, "inferred schema for object");
+
+                            {
+                                let mut lock = self.schema.lock().await;
+                                *lock = Some(schema.clone());
+                            }
+                            return Ok(schema);
+                        }
+                        Err(e) => {
+                            warn!(
+                                ?e,
+                                store = file_system.store.metadata.id,
+                                prefix = ?prefix,
+                                item = ?item,
+                                "failed to infer schema for object"
+                            );
+                            continue;
+                        }
+                    }
+                }
+                Err(e) => {
+                    warn!(
+                        ?e,
+                        store = file_system.store.metadata.id,
+                        prefix = ?prefix,
+                        "failed to list items in store"
+                    );
+                    continue;
+                }
+            }
+        }
+
+        Err(Error::NotFound(format!(
+            "failed to find schema for file system {} buffer {}",
+            file_system.store.metadata.id, self.id
+        )))
+    }
+
+    fn get_sample_prefix(&self) -> Result<(&FileSystemBuffer, &Path), Error> {
+        let file_systems: Vec<(&usize, &FileSystemBuffer)> = self.file_systems.iter().collect();
+        let (file_system_id, file_system) = file_systems.get(0).ok_or(Error::NotFound(format!(
+            "no file systems in buffer {}",
+            self.id
+        )))?;
+
+        let prefixes = file_system.prefixes();
+        let prefix = prefixes.get(0).ok_or(Error::NotFound(format!(
+            "no prefixes for file system {} in buffer {}",
+            file_system_id, self.id
+        )))?;
+
+        Ok((file_system, prefix))
     }
 }
 
