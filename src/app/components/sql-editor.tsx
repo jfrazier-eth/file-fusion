@@ -7,12 +7,18 @@ import { useQuery } from "../hooks/use-query";
 import { UseBuffersResposne } from "../hooks/buffers";
 import { UseQueryResult } from "@tanstack/react-query";
 import { Schema } from "./schema";
+import { useElementSize } from "../hooks/element-size";
+import { useState } from "react";
 
 interface Props {
   buffers: UseQueryResult<UseBuffersResposne, Error>;
 }
 
 export const SQLEditor = ({ buffers }: Props) => {
+  const [containerRef, { width: containerWidth, height: containerHeight }] =
+    useElementSize();
+  const [sideBarRef, { width: sideBarWidth }] = useElementSize();
+
   const items: number[] = buffers.isSuccess
     ? buffers.data.map((item) => item.id)
     : [];
@@ -20,6 +26,11 @@ export const SQLEditor = ({ buffers }: Props) => {
     "SELECT * FROM data;",
     items,
   );
+
+  const [cursor, setCursor] = useState<{ column: number; row: number }>({
+    column: statement.length,
+    row: 0,
+  });
 
   if (buffers.isError) {
     return <div className="flex flex-col">{buffers.error?.toString?.()}</div>;
@@ -30,9 +41,15 @@ export const SQLEditor = ({ buffers }: Props) => {
   }
 
   return (
-    <div className="flex flex-col">
+    <div
+      className="flex flex-col max-w-full w-full h-full max-h-full overflow-clip"
+      ref={containerRef}
+    >
       <div className="flex flex-row">
-        <div className="flex flex-col mr-2 h-full">
+        <div
+          className={`flex flex-col mr-2 h-full max-h-[${containerHeight}px]`}
+          ref={sideBarRef}
+        >
           <select
             className="select select-sm mb-2 w-full max-w-xs rounded-none"
             onChange={(e) => {
@@ -50,10 +67,35 @@ export const SQLEditor = ({ buffers }: Props) => {
             })}
           </select>
           <div className="flex flex-col overflow-auto">
-            <Schema buffer={buffer} />
+            <Schema
+              buffer={buffer}
+              onClick={(data) => {
+                let rows = statement.split("\n");
+
+                let content = rows
+                  .map((row, index) => {
+                    if (index === cursor.row) {
+                      let prefix = row.slice(0, cursor.column).trimEnd();
+                      let suffix = row.slice(cursor.column).trimStart();
+
+                      return `${prefix} ${
+                        data.includes(".") ? `"${data}"` : data
+                      } ${suffix}`;
+                    } else {
+                      return row;
+                    }
+                  })
+                  .join("\n");
+                setStatement(content);
+              }}
+            />
           </div>
         </div>
-        <div className="flex flex-col grow">
+        <div
+          className={`max-h-[${containerHeight}px] max-w-[${
+            containerWidth - sideBarWidth
+          }px] flex flex-col h-full w-full`}
+        >
           <AceEditor
             mode="sql"
             theme="monokai"
@@ -66,6 +108,10 @@ export const SQLEditor = ({ buffers }: Props) => {
             highlightActiveLine={true}
             className="h-40 max-h-40"
             width="100%"
+            cursorStart={cursor.column}
+            onCursorChange={(e) => {
+              setCursor({ column: e.cursor.column, row: e.cursor.row });
+            }}
             value={statement}
             editorProps={{ $blockScrolling: true }}
             setOptions={{
@@ -76,7 +122,7 @@ export const SQLEditor = ({ buffers }: Props) => {
             }}
           />
           <div className="h-16 bg-base-200 flex flex-row justify-between items-center px-2">
-            <button className="btn btn-secondary btn-sm rounded-none">
+            <button className="btn btn-secondary btn-sm rounded-none" disabled>
               Explain
             </button>
             <button
@@ -91,8 +137,7 @@ export const SQLEditor = ({ buffers }: Props) => {
             </button>
           </div>
 
-          <div className="mt-2 bg-base-200 grow overflow-scroll">
-            <p>Results</p>
+          <div className="mt-2 bg-base-200 grow overflow-auto w-full max-w-full">
             {results.length > 0 ? (
               <table className="table">
                 <thead>
