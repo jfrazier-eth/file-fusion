@@ -1,10 +1,9 @@
 use datafusion::{
     arrow::{self, datatypes::Schema},
-    datasource::file_format::{parquet, FileFormat},
-    execution::context::SessionContext,
+    execution::context::{SQLOptions, SessionContext},
 };
 use futures::lock::Mutex;
-use object_store::{path::Path, ObjectMeta, ObjectStore as ObjectStoreClient};
+use object_store::path::Path;
 use serde_json::{Map, Value};
 use tracing::{debug, info, warn};
 
@@ -15,6 +14,7 @@ use crate::{
 };
 
 use std::{
+    cmp::Ordering,
     fmt,
     fs::{create_dir_all, OpenOptions},
     io::{prelude::*, BufReader},
@@ -43,12 +43,30 @@ pub struct FileSystemBufferState {
     prefixes: Vec<usize>,
 }
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Eq)]
 pub struct BufferState {
     id: usize,
     name: String,
     common_schema: bool,
     file_systems: Vec<usize>,
+}
+
+impl Ord for BufferState {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.id.cmp(&other.id)
+    }
+}
+
+impl PartialOrd for BufferState {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl PartialEq for BufferState {
+    fn eq(&self, other: &Self) -> bool {
+        self.id == other.id
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -375,46 +393,12 @@ impl App {
             }
         }
 
-        let df = self
-            .session
-            .sql(&query.statement)
-            .await
-            .map_err(|e| Error::DataFusionError(e))?;
+        let state = self.session.state();
+        let plan = state.create_logical_plan(&query.statement).await?;
+        let sql_options = SQLOptions::new();
+        sql_options.verify_plan(&plan)?;
 
-        // df.describe()
-        // df.explain(verbose, analyze)
-        // df.create_physical_plan()
-        // let logical_plan = df.logical_plan();
-
-        // let display = logical_plan.display();
-        // println!(
-        //     "LOGICAL PLAN UNOPTIMIZED
-        //     {}",
-        //     display
-        // );
-        // let logical_plan = self.session.optimize(logical_plan)?;
-        // let display = logical_plan.display();
-        // println!(
-        //     "LOGICAL PLAN OPTIMIZED
-        //     {}",
-        //     display
-        // );
-        // let physical_plan = self.session.create_physical_plan(&logical_plan).await?;
-        // let display = physical_plan.clone();
-        // println!(
-        //     "PHYSICAL PLAN
-        //     {:?}",
-        //     display
-        // );
-        // physical_plan.schema() // is this the output schema?
-        // let partitions = physical_plan.output_partitioning();
-        // physical_plan.execute(partition, context)
-        // let stats = physical_plan.statistics()?;
-        // println!(
-        //     "STATS
-        //     {:?}",
-        //     stats
-        // );
+        let df = self.session.execute_logical_plan(plan).await?;
 
         let batches = df.collect().await?;
         let batches: Vec<_> = batches.iter().collect();

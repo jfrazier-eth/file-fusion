@@ -4,22 +4,40 @@ use directories::UserDirs;
 use object_store::{
     aws::AmazonS3Builder, local::LocalFileSystem, ObjectStore as ObjectStoreClient,
 };
-use std::sync::Arc;
+use std::{cmp::Ordering, sync::Arc};
 use tracing::{debug, info};
 use url::Url;
 
-#[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
+#[derive(serde::Serialize, serde::Deserialize, Debug, Clone, PartialEq, Eq)]
 pub enum ObjectStoreKind {
     Local,
     Remote,
 }
 
-#[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
+#[derive(serde::Serialize, serde::Deserialize, Debug, Clone, Eq)]
 pub struct Metadata {
     pub id: usize,
     pub name: String,
     pub prefix: String,
     pub kind: ObjectStoreKind,
+}
+
+impl Ord for Metadata {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.id.cmp(&other.id)
+    }
+}
+
+impl PartialOrd for Metadata {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl PartialEq for Metadata {
+    fn eq(&self, other: &Self) -> bool {
+        self.id == other.id
+    }
 }
 
 impl Metadata {

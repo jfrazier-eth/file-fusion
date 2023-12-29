@@ -155,7 +155,10 @@ pub async fn update(app: tauri::State<'_, Arc<App>>, message: Messages) -> Resul
 )]
 pub async fn storages(app: tauri::State<'_, Arc<App>>) -> Result<Vec<Metadata>, Error> {
     let stores = app.list_stores().await;
-    let metadata = stores.iter().map(|store| store.metadata.clone()).collect();
+    let mut metadata: Vec<Metadata> = stores.iter().map(|store| store.metadata.clone()).collect();
+    metadata.sort();
+    metadata.reverse();
+
     Ok(metadata)
 }
 
@@ -238,8 +241,10 @@ pub async fn query(
     )
 )]
 pub async fn get_buffers(app: tauri::State<'_, Arc<App>>) -> Result<Vec<BufferState>, Error> {
-    let buffers = app.list_buffers().await;
+    let mut buffers = app.list_buffers().await;
 
+    buffers.sort();
+    buffers.reverse();
     Ok(buffers)
 }
 
